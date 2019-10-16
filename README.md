@@ -48,6 +48,7 @@ All Bokeh Links and Book Chapters gathered for R&D are in [this github gist](htt
 
 - [x] PC
   - [x] Windows 10 - **DX12**
+  - [ ] Windows 10 - **Vulkan 1.1**
   - [ ] Windows 7 - **Fallback DX11**
   - [ ] Linux Ubuntu 18.04 LTS - **Vulkan 1.1**
 - [ ] Android Pie - **Vulkan 1.1**
