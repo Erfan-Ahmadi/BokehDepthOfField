@@ -30,7 +30,7 @@ struct MeshBatch
 	Buffer* pNormalStream;
 	Buffer* pUVStream;
 	Buffer* pIndicesStream;
-	size_t mCountIndices;
+	uint32_t mCountIndices;
 };
 
 struct SceneData
@@ -258,6 +258,7 @@ class Example: public IApp
 
 		RemoveCmds();
 
+		removeGpuProfiler(pRenderer, pGpuProfiler);
 		removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -370,7 +371,7 @@ class Example: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.depth = 1.0f;
 		loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth.stencil = 0.0;
+		loadActions.mClearDepth.stencil = 0;
 
 		// Forward Pass
 		Cmd* cmd = ppCmds[gFrameIndex];
@@ -710,7 +711,7 @@ class Example: public IApp
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue.depth = 1.0f;
-			rtDesc.mClearValue.stencil = 0.0;
+			rtDesc.mClearValue.stencil = 0;
 			rtDesc.mFormat = TinyImageFormat_D24_UNORM_S8_UINT;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth;
