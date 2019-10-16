@@ -183,6 +183,7 @@ class CircularDOF: public IApp
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
+
 		if (!initInputSystem(pWindow))
 			return false;
 
@@ -269,7 +270,8 @@ class CircularDOF: public IApp
 
 		AddRenderTargets();
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets)) return false;
+		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+			return false;
 
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
@@ -344,8 +346,7 @@ class CircularDOF: public IApp
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL,
 			&gFrameIndex);
 
-		Semaphore* pRenderCompleteSemaphore =
-			pRenderCompleteSemaphores[gFrameIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
@@ -372,7 +373,6 @@ class CircularDOF: public IApp
 		loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.stencil = 0;
 
-		// Forward Pass
 		Cmd* cmd = ppCmds[gFrameIndex];
 		{
 			RenderTarget* pSwapChainRenderTarget =
@@ -459,11 +459,9 @@ class CircularDOF: public IApp
 		}
 
 		// Submit Second Pass Command Buffer
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1,
-			&pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1,
-			&pRenderCompleteSemaphore);
+		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
 		flipProfiler();
 	}
@@ -476,7 +474,7 @@ class CircularDOF: public IApp
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mEnableVsync = true;
+		swapChainDesc.mEnableVsync = false;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
