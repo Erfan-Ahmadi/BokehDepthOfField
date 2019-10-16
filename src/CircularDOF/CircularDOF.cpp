@@ -30,7 +30,7 @@ struct MeshBatch
 	Buffer* pNormalStream;
 	Buffer* pUVStream;
 	Buffer* pIndicesStream;
-	size_t mCountIndices;
+	uint32_t mCountIndices;
 };
 
 struct SceneData
@@ -99,7 +99,7 @@ TextDrawDesc gFrameTimeDraw				= TextDrawDesc(0, 0xff00ffff, 18);
 
 const char* pszBases[FSR_Count] = {
 	"../../../../src/Shaders/bin",													// FSR_BinShaders
-	"../../../../src/CircularDOF/",													// FSR_SrcShaders
+	"../../../../src/CircularDOF/",														// FSR_SrcShaders
 	"../../../../art/",																// FSR_Textures
 	"../../../../art/",																// FSR_Meshes
 	"../../../../../The-Forge/Examples_3/Unit_Tests/UnitTestResources/",			// FSR_Builtin_Fonts
@@ -111,10 +111,11 @@ const char* pszBases[FSR_Count] = {
 	"../../../../../The-Forge/Middleware_3/UI/",									// FSR_MIDDLEWARE_UI
 };
 
-class Example: public IApp
+
+class CircularDOF: public IApp
 {
 	public:
-	Example() {}
+	CircularDOF() {}
 
 	bool Init()
 	{
@@ -160,31 +161,30 @@ class Example: public IApp
 		// UI, Camera, Input
 		//--------------------------------------------------------------------------------------------
 
-		if (!gAppUI.Init(pRenderer)) return false;
+		if (!gAppUI.Init(pRenderer))
+			return false;
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		GuiDesc guiDesc = {};
-		float dpiScale = getDpiScale().x;
+		float   dpiScale = getDpiScale().x;
 		guiDesc.mStartSize = vec2(140.0f, 320.0f);
-		guiDesc.mStartPosition =
-			vec2(mSettings.mWidth / dpiScale - guiDesc.mStartSize.getX() * 1.1f,
-				 guiDesc.mStartSize.getY() * 0.5f);
+		guiDesc.mStartPosition = vec2(mSettings.mWidth / dpiScale - guiDesc.mStartSize.getX() * 1.1f, guiDesc.mStartSize.getY() * 0.5f);
 
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
-		pGui->AddWidget(
-			CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 		// Camera
 		CameraMotionParameters cmp { 40.0f, 30.0f, 100.0f };
-		vec3 camPos { 0.0f, 0.0f, 0.8f };
-		vec3 lookAt { 0.0f, 0.0f, 5.0f };
+		vec3                   camPos { 0.0f, 0.0f, 0.8f };
+		vec3                   lookAt { 0.0f, 0.0f, 5.0f };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
-		if (!initInputSystem(pWindow)) return false;
+		if (!initInputSystem(pWindow))
+			return false;
 
 		// Initialize microprofiler and it's UI.
 		initProfiler();
@@ -193,65 +193,35 @@ class Example: public IApp
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-		InputActionDesc actionDesc = {
-			InputBindings::BUTTON_FULLSCREEN,
-			[](InputActionContext* ctx)
-	 {
-toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
-return true;
-},
-this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx)
-	 {
-requestShutdown();
-return true;
-} };
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY,
-					  [](InputActionContext* ctx)
-	 {
-bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool,
-							   ctx->pPosition);
-setEnableCaptureInput(
-	capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-return true;
-},
-this };
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
 		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext * ctx,
-										   uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx,
-													 uint32_t index)
+		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
 			if (!bToggleMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(
-					index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
-				index ? pCameraController->onRotate(ctx->mFloat2)
-					: pCameraController->onMove(ctx->mFloat2);
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK,
-					  [](InputActionContext* ctx) { return onCameraInput(ctx, 1); },
-					  NULL,
-					  20.0f,
-					  200.0f,
-					  0.5f };
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK,
-					  [](InputActionContext* ctx) { return onCameraInput(ctx, 0); },
-					  NULL,
-					  20.0f,
-					  200.0f,
-					  1.0f };
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx)
-	 {
-pCameraController->resetView();
-return true;
-} };
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
 		return true;
@@ -269,7 +239,6 @@ return true;
 
 		gAppUI.Exit();
 
-		// Exit profile
 		exitProfiler();
 
 		UnloadModels();
@@ -288,6 +257,7 @@ return true;
 
 		RemoveCmds();
 
+		removeGpuProfiler(pRenderer, pGpuProfiler);
 		removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -372,7 +342,7 @@ return true;
 	void Draw()
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL,
-						 &gFrameIndex);
+			&gFrameIndex);
 
 		Semaphore* pRenderCompleteSemaphore =
 			pRenderCompleteSemaphores[gFrameIndex];
@@ -400,7 +370,7 @@ return true;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.depth = 1.0f;
 		loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth.stencil = 0.0;
+		loadActions.mClearDepth.stencil = 0;
 
 		// Forward Pass
 		Cmd* cmd = ppCmds[gFrameIndex];
@@ -420,15 +390,15 @@ return true;
 				cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
 				cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, pDepthBuffer,
-									 &loadActions, NULL, NULL, -1, -1);
+					&loadActions, NULL, NULL, -1, -1);
 				cmdSetViewport(
 					cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
 					(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 				cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
-							  pSwapChainRenderTarget->mDesc.mHeight);
+					pSwapChainRenderTarget->mDesc.mHeight);
 
 				cmdBindDescriptorSet(cmd, gFrameIndex,
-									 pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+					pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 
 				cmdBindPipeline(cmd, pPipelineForwardPass);
 				{
@@ -447,7 +417,7 @@ return true;
 				loadActions = {};
 				loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 				cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL,
-									 &loadActions, NULL, NULL, -1, -1);
+					&loadActions, NULL, NULL, -1, -1);
 				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
 				static HiresTimer gTimer;
 				gTimer.GetUSec(true);
@@ -461,7 +431,7 @@ return true;
 					.c_str(),
 					&gFrameTimeDraw);
 
-#if !defined(__ANDROID__)
+				#if !defined(__ANDROID__)
 				gAppUI.DrawText(
 					cmd, float2(8, 40),
 					eastl::string()
@@ -470,7 +440,7 @@ return true;
 					.c_str(),
 					&gFrameTimeDraw);
 				gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#endif
+				#endif
 
 				cmdDrawProfiler();
 
@@ -490,10 +460,10 @@ return true;
 
 		// Submit Second Pass Command Buffer
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1,
-					&pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+			&pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1,
-					 &pRenderCompleteSemaphore);
+			&pRenderCompleteSemaphore);
 
 		flipProfiler();
 	}
@@ -514,7 +484,7 @@ return true;
 		return pSwapChain != NULL;
 	}
 
-	const char* GetName() { return "Example"; }
+	const char* GetName() { return "CircularDOF"; }
 
 	// Pipeline State Objects
 
@@ -677,8 +647,8 @@ return true;
 			params[0].pName = "UniformData";
 			params[0].ppBuffers = &pUniformBuffers[i];
 			updateDescriptorSet(pRenderer, i,
-								pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
-								params);
+				pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+				params);
 		}
 	}
 
@@ -740,7 +710,7 @@ return true;
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue.depth = 1.0f;
-			rtDesc.mClearValue.stencil = 0.0;
+			rtDesc.mClearValue.stencil = 0;
 			rtDesc.mFormat = TinyImageFormat_D24_UNORM_S8_UINT;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth;
@@ -778,7 +748,7 @@ return true;
 
 		AssimpImporter::Model model;
 		if (!importer.ImportModel("../../../../art/Meshes/chinesedragon.dae",
-								  &model))
+			&model))
 		{
 			return false;
 		}
@@ -851,4 +821,4 @@ return true;
 	}
 };
 
-DEFINE_APPLICATION_MAIN(Example)
+DEFINE_APPLICATION_MAIN(CircularDOF)

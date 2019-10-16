@@ -41,7 +41,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\CircularDOF\Example.cpp">
+    <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

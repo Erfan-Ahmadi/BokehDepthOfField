@@ -37,7 +37,7 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\CircularDOF\Example.cpp" />
+    <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{03eb28e8-329a-4b11-a5d6-0dd2e01716f7}</ProjectGuid>
