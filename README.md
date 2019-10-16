@@ -4,7 +4,6 @@ Implementing Different Algorithms to mimic Bokeh Depth Of Field: A Physical Came
 
 This Project is using [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge), a cross-platform rendering, and targeted for these devices: PC, Android, macOS, IOS, IPad OS devices.
 
-
 ## Motivation
 
 To mimic the physical camera in real-time in an efficient way to reduce postfx overheads.
@@ -22,7 +21,7 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 
 ## Techniques
 
-- [x] Circular Depth of Field (Kleber Garcia)
+- [x] [Circular Depth of Field (Kleber Garcia)](#Resources)
 
 ## Build
   - [x] Visual Studio 2017:
@@ -37,11 +36,11 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 
 Report any bug on your devices with most detail [here](https://github.com/Erfan-Ahmadi/BokehDepthOfField/issues)
 
-## Resources
+## <a name="Resources"></a> Resources 
 
 All Bokeh Links and Book Chapters gathered for R&D are in [this github gist](https://gist.github.com/Erfan-Ahmadi/e27842ce9daa163ec10e28ee1fc72659); for detailed resources and links see below:
 
-- Circular Depth of Field (Kleber Garcia)
+- <Circular Depth of Field (Kleber Garcia)
   - [Circular Separable Convolution Depth of Field Paper - Keleber Garcia](https://github.com/kecho/CircularDofFilterGenerator/blob/master/circulardof.pdf)
   - [Circularly Symmetric Convolution and Lens Blur - Olli Niemitalo](http://yehar.com/blog/?p=1495)
 
