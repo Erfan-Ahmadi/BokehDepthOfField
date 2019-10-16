@@ -27,25 +27,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\Bokeh-FourPass\BokehFourPass.cpp" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\basic.frag" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\basic.vert" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\profile.frag" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\profile.vert" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\basic.frag" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\profile.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\common.h" />
+    <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{b9faff81-c09c-49c6-bb0f-ca1bb68d99de}</ProjectGuid>
+    <ProjectGuid>{03eb28e8-329a-4b11-a5d6-0dd2e01716f7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>Bokeh_FourPass</RootNamespace>
+    <RootNamespace>CircularDOF</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -121,7 +118,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath);$(TheForge);$(SolutionDir)..\..\src</IncludePath>
+    <IncludePath>$(IncludePath);$(TheForge)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -344,7 +341,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(TheForge)\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TheForge)Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>

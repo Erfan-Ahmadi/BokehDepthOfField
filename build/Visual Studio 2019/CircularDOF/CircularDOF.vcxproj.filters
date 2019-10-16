@@ -15,39 +15,34 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\Bokeh-FourPass\BokehFourPass.cpp">
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\profile.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\profile.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\src\Bokeh-FourPass\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\common.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
