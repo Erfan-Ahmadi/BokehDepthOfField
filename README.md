@@ -40,7 +40,7 @@ Report any bug on your devices with most detail [here](https://github.com/Erfan-
 
 All Bokeh Links and Book Chapters gathered for R&D are in [this github gist](https://gist.github.com/Erfan-Ahmadi/e27842ce9daa163ec10e28ee1fc72659); for detailed resources and links see below:
 
-- <Circular Depth of Field (Kleber Garcia)
+- Circular Depth of Field (Kleber Garcia)
   - [Circular Separable Convolution Depth of Field Paper - Keleber Garcia](https://github.com/kecho/CircularDofFilterGenerator/blob/master/circulardof.pdf)
   - [Circularly Symmetric Convolution and Lens Blur - Olli Niemitalo](http://yehar.com/blog/?p=1495)
 
