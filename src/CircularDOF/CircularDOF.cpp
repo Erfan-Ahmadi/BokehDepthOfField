@@ -38,11 +38,16 @@ struct SceneData
 	eastl::vector<MeshBatch*> meshes;
 };
 
-struct UniformData
+struct UniformDataScene
 {
 	mat4 world;
 	mat4 view;
 	mat4 proj;
+};
+
+struct UniformDataDOF
+{
+	float filterRadius = 1.0f;
 };
 
 //--------------------------------------------------------------------------------------------
@@ -54,7 +59,9 @@ Renderer* pRenderer																= NULL;
 Queue* pGraphicsQueue															= NULL;
 
 CmdPool* pCmdPool																= NULL;
-Cmd** ppCmds 																	= NULL;
+Cmd** ppCmdsHDR 																= NULL;
+Cmd** ppCmdsHorizontalDof 														= NULL;
+Cmd** ppCmdsComposite															= NULL;
 
 SwapChain* pSwapChain 															= NULL;
 
@@ -63,26 +70,40 @@ Fence* pRenderCompleteFences[gImageCount] 										= { NULL };
 Semaphore* pImageAcquiredSemaphore 												= NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 
-Pipeline* pPipelineForwardPass 													= NULL;
+Pipeline* pPipelineScene 														= NULL;
+Pipeline* pPipelineHorizontalDOF 												= NULL;
+Pipeline* pPipelineComposite 													= NULL;
 
-Shader* pBasicShader 															= NULL;
+Shader* pShaderBasic 															= NULL;
+Shader* pShaderHorizontalDof 													= NULL;
+Shader* pShaderComposite 														= NULL;
 
-DescriptorSet* pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT] 					= { NULL };
+DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
+DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 
-RootSignature* pRootSignature 													= NULL;
+RootSignature* pRootSignatureScene 												= NULL;
+RootSignature* pRootSignatureHorizontalPass										= NULL;
+RootSignature* pRootSignatureCompositePass 										= NULL;
 
 Sampler* pSamplerLinear;
 
 RenderTarget* pDepthBuffer;
+
+RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL }; //R16B16G16A16
+RenderTarget* pRenderTargetR[gImageCount]										= { NULL }; //R16B16G16A16
+RenderTarget* pRenderTargetG[gImageCount]										= { NULL }; //R16B16G16A16
+RenderTarget* pRenderTargetB[gImageCount]										= { NULL }; //R16B16G16A16
 
 RasterizerState* pRasterDefault 												= NULL;
 
 DepthState* pDepthDefault 														= NULL;
 DepthState* pDepthNone 															= NULL;
 
-Buffer* pUniformBuffers[gImageCount] 											= { NULL };
+Buffer* pUniformBuffersScene[gImageCount] 									= { NULL };
+Buffer* pUniformBuffersDOF[gImageCount] 										= { NULL };
 
-UniformData gUniformData;
+UniformDataScene gUniformDataScene;
 SceneData gSceneData;
 
 //--------------------------------------------------------------------------------------------
@@ -319,11 +340,11 @@ class CircularDOF: public IApp
 		mat4 projMat =
 			mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
 
-		gUniformData.view = viewMat;
-		gUniformData.proj = projMat;
+		gUniformDataScene.view = viewMat;
+		gUniformDataScene.proj = projMat;
 
 		// Update Instance Data
-		gUniformData.world = mat4::translation(Vector3(0.0f, -1.5f, 7)) *
+		gUniformDataScene.world = mat4::translation(Vector3(0.0f, -1.5f, 7)) *
 			mat4::rotationY(currentTime) *
 			mat4::scale(Vector3(0.4f));
 
@@ -343,6 +364,8 @@ class CircularDOF: public IApp
 
 	void Draw()
 	{
+		eastl::vector<Cmd*> allCmds;
+
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL,
 			&gFrameIndex);
 
@@ -356,8 +379,8 @@ class CircularDOF: public IApp
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
-		BufferUpdateDesc viewProjCbv = { pUniformBuffers[gFrameIndex],
-										&gUniformData };
+		BufferUpdateDesc viewProjCbv = { pUniformBuffersScene[gFrameIndex],
+										&gUniformDataScene };
 		updateResource(&viewProjCbv);
 
 		// Load Actions
@@ -373,93 +396,121 @@ class CircularDOF: public IApp
 		loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.stencil = 0;
 
-		Cmd* cmd = ppCmds[gFrameIndex];
+		RenderTarget* pHdrRenderTarget = pRenderTargetHDR[gFrameIndex];
+
+		Cmd* cmd = ppCmdsHDR[gFrameIndex];
+		beginCmd(cmd);
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Scene Pass", true);
+
+			TextureBarrier textureBarriers[2] =
+			{
+				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+
+			cmdBindRenderTargets(cmd, 1, &pHdrRenderTarget, pDepthBuffer,
+				&loadActions, NULL, NULL, -1, -1);
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pHdrRenderTarget->mDesc.mWidth,
+				(float)pHdrRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pHdrRenderTarget->mDesc.mWidth,
+				pHdrRenderTarget->mDesc.mHeight);
+
+			cmdBindDescriptorSet(cmd, gFrameIndex,
+				pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+
+			cmdBindPipeline(cmd, pPipelineScene);
+			{
+				for (int i = 0; i < gSceneData.meshes.size(); ++i)
+				{
+					Buffer* pVertexBuffers [] = { gSceneData.meshes[i]->pPositionStream,
+												gSceneData.meshes[i]->pNormalStream };
+					cmdBindVertexBuffer(cmd, 2, pVertexBuffers, NULL);
+					cmdBindIndexBuffer(cmd, gSceneData.meshes[i]->pIndicesStream, 0);
+					cmdDrawIndexed(cmd, gSceneData.meshes[i]->mCountIndices, 0, 0);
+				}
+			}
+
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsComposite[gFrameIndex];
+		beginCmd(cmd);
 		{
 			RenderTarget* pSwapChainRenderTarget =
 				pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+			;
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
 
-			beginCmd(cmd);
-			cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+			TextureBarrier textureBarriers[2] =
 			{
-				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Forward Pass", true);
+				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
 
-				TextureBarrier textureBarriers[2] = {
-					{pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET},
-					{pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE} };
+			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
-				cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+			loadActions = {};
+			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-				cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, pDepthBuffer,
-					&loadActions, NULL, NULL, -1, -1);
-				cmdSetViewport(
-					cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
-					(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-				cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
-					pSwapChainRenderTarget->mDesc.mHeight);
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
+				(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
+				pSwapChainRenderTarget->mDesc.mHeight);
 
-				cmdBindDescriptorSet(cmd, gFrameIndex,
-					pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+			cmdBindDescriptorSet(cmd, gFrameIndex,
+				pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 
-				cmdBindPipeline(cmd, pPipelineForwardPass);
-				{
-					for (int i = 0; i < gSceneData.meshes.size(); ++i)
-					{
-						Buffer* pVertexBuffers [] = { gSceneData.meshes[i]->pPositionStream,
-													gSceneData.meshes[i]->pNormalStream };
-						cmdBindVertexBuffer(cmd, 2, pVertexBuffers, NULL);
-						cmdBindIndexBuffer(cmd, gSceneData.meshes[i]->pIndicesStream, 0);
-						cmdDrawIndexed(cmd, gSceneData.meshes[i]->mCountIndices, 0, 0);
-					}
-				}
-
-				cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-
-				loadActions = {};
-				loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-				cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL,
-					&loadActions, NULL, NULL, -1, -1);
-				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
-				static HiresTimer gTimer;
-				gTimer.GetUSec(true);
-
-				gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-
-				gAppUI.DrawText(
-					cmd, float2(8, 15),
-					eastl::string()
-					.sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f)
-					.c_str(),
-					&gFrameTimeDraw);
-
-				#if !defined(__ANDROID__)
-				gAppUI.DrawText(
-					cmd, float2(8, 40),
-					eastl::string()
-					.sprintf("GPU %f ms",
-					(float)pGpuProfiler->mCumulativeTime * 1000.0f)
-					.c_str(),
-					&gFrameTimeDraw);
-				gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-				#endif
-
-				cmdDrawProfiler();
-
-				gAppUI.Gui(pGui);
-
-				gAppUI.Draw(cmd);
-				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-				cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-
-				textureBarriers[0] = { pSwapChainRenderTarget->pTexture,
-									  RESOURCE_STATE_PRESENT };
-				cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
+			cmdBindPipeline(cmd, pPipelineComposite);
+			{
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
 			}
-			cmdEndGpuFrameProfile(cmd, pGpuProfiler);
-			endCmd(cmd);
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+
+			loadActions = {};
+			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
+			static HiresTimer gTimer;
+			gTimer.GetUSec(true);
+
+			gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+
+			gAppUI.DrawText(cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+
+			#if !defined(__ANDROID__)
+			gAppUI.DrawText(
+				cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+				&gFrameTimeDraw);
+			gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+			#endif
+
+			cmdDrawProfiler();
+
+			gAppUI.Gui(pGui);
+
+			gAppUI.Draw(cmd);
+			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+
+			textureBarriers[0] = { pSwapChainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
+			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
 		}
+		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		endCmd(cmd);
+		allCmds.push_back(cmd);
 
 		// Submit Second Pass Command Buffer
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
+		queueSubmit(pGraphicsQueue, allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 
@@ -566,13 +617,13 @@ class CircularDOF: public IApp
 			bufferDesc = {};
 			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			bufferDesc.mDesc.mSize = sizeof(gUniformData);
+			bufferDesc.mDesc.mSize = sizeof(gUniformDataScene);
 			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			bufferDesc.pData = NULL;
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				bufferDesc.ppBuffer = &pUniformBuffers[i];
+				bufferDesc.ppBuffer = &pUniformBuffersScene[i];
 				addResource(&bufferDesc);
 			}
 		}
@@ -582,7 +633,7 @@ class CircularDOF: public IApp
 	{
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			removeResource(pUniformBuffers[i]);
+			removeResource(pUniformBuffersScene[i]);
 		}
 	}
 
@@ -590,63 +641,225 @@ class CircularDOF: public IApp
 
 	void AddShaders()
 	{
-		// Basic Shader
 		ShaderLoadDesc shaderDesc = {};
 		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
-		addShader(pRenderer, &shaderDesc, &pBasicShader);
+		addShader(pRenderer, &shaderDesc, &pShaderBasic);
+		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "horizontalDof.frag", NULL, 0, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderHorizontalDof);
+		shaderDesc.mStages[0] = { "composite.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "composite.frag", NULL, 0, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderComposite);
 	}
 
 	void RemoveShaders()
 	{
-		removeShader(pRenderer, pBasicShader);
+		removeShader(pRenderer, pShaderBasic);
+		removeShader(pRenderer, pShaderHorizontalDof);
+		removeShader(pRenderer, pShaderComposite);
 	}
 
 	// Descriptor Sets
 
 	void AddDescriptorSets()
 	{
-		// Resource Binding
-		const char* samplerNames = { "uSampler0 " };
-		// Root Signature for Forward Pipeline
+		// HDR
 		{
-			Shader* shaders[1] = { pBasicShader };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mShaderCount = 1;
-			rootDesc.ppShaders = shaders;
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = &samplerNames;
-			rootDesc.ppStaticSamplers = &pSamplerLinear;
-			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+			const char* samplerNames = { "uSampler0 " };
+			{
+				Shader* shaders[1] = { pShaderBasic };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = 1;
+				rootDesc.ppStaticSamplerNames = &samplerNames;
+				rootDesc.ppStaticSamplers = &pSamplerLinear;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureScene);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureScene, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsScene[0]);
+			setDesc = { pRootSignatureScene, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsScene[1]);
 		}
 
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE,
-									 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSets[0]);
-		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSets[1]);
+		// HorizontalDof
+		{
+			const char* samplerNames = { "uSampler0 " };
+			{
+				Shader* shaders[1] = { pShaderHorizontalDof };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = 1;
+				rootDesc.ppStaticSamplerNames = &samplerNames;
+				rootDesc.ppStaticSamplers = &pSamplerLinear;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureHorizontalPass);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureHorizontalPass, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsHorizontalPass[0]);
+			setDesc = { pRootSignatureHorizontalPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsHorizontalPass[1]);
+		}
+
+		// Composite
+		{
+			const char* samplerNames = { "uSampler0 " };
+			{
+				Shader* shaders[1] = { pShaderComposite };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = 1;
+				rootDesc.ppStaticSamplerNames = &samplerNames;
+				rootDesc.ppStaticSamplers = &pSamplerLinear;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureCompositePass);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureCompositePass, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsCompositePass[0]);
+			setDesc = { pRootSignatureCompositePass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsCompositePass[1]);
+		}
 	}
 
 	void RemoveDescriptorSets()
 	{
-		removeRootSignature(pRenderer, pRootSignature);
+		removeRootSignature(pRenderer, pRootSignatureScene);
+		removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
+		removeRootSignature(pRenderer, pRootSignatureCompositePass);
 		for (int i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		{
-			if (pDescriptorSets[i])
-				removeDescriptorSet(pRenderer, pDescriptorSets[i]);
+			if (pDescriptorSetsScene[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsScene[i]);
+			if (pDescriptorSetsHorizontalPass[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
+			if (pDescriptorSetsCompositePass[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsCompositePass[i]);
 		}
 	}
 
 	void PrepareDescriptorSets()
 	{
-		for (uint32_t i = 0; i < gImageCount; ++i)
+		// HDR
 		{
-			DescriptorData params[1] = {};
-			params[0].pName = "UniformData";
-			params[0].ppBuffers = &pUniformBuffers[i];
-			updateDescriptorSet(pRenderer, i,
-				pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
-				params);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "UniformData";
+				params[0].ppBuffers = &pUniformBuffersScene[i];
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					params);
+			}
+		}
+
+		// HorizontalDof
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "Texture";
+				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					params);
+			}
+		}
+
+		// Composite
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[4] = {};
+				params[0].pName = "Texture";
+				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
+				params[1].pName = "RComponent";
+				params[1].ppTextures = &pRenderTargetR[i]->pTexture;
+				params[2].pName = "GComponent";
+				params[2].ppTextures = &pRenderTargetG[i]->pTexture;
+				params[3].pName = "BComponent";
+				params[3].ppTextures = &pRenderTargetB[i]->pTexture;
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					params);
+			}
+		}
+	}
+
+	// Render Targets
+
+	void AddRenderTargets()
+	{
+		ClearValue colorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		// Depth Buffer
+		{
+			RenderTargetDesc rtDesc = {};
+			rtDesc.mArraySize = 1;
+			rtDesc.mClearValue.depth = 1.0f;
+			rtDesc.mClearValue.stencil = 0;
+			rtDesc.mFormat = TinyImageFormat_D24_UNORM_S8_UINT;
+			rtDesc.mDepth = 1;
+			rtDesc.mWidth = mSettings.mWidth;
+			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mSampleCount = SAMPLE_COUNT_1;
+			rtDesc.mSampleQuality = 0;
+			addRenderTarget(pRenderer, &rtDesc, &pDepthBuffer);
+		}
+
+		// HDR
+		{
+			RenderTargetDesc rtDesc = {};
+			rtDesc.mArraySize = 1;
+			rtDesc.mClearValue.depth = 1.0f;
+			rtDesc.mClearValue.stencil = 0;
+			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+			rtDesc.mDepth = 1;
+			rtDesc.mWidth = mSettings.mWidth;
+			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mSampleCount = SAMPLE_COUNT_1;
+			rtDesc.mSampleQuality = 0;
+
+			for (int i = 0; i < gImageCount; ++i)
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetHDR[i]);
+		}
+
+		// R, G, B
+		{
+			RenderTargetDesc rtDesc = {};
+			rtDesc.mArraySize = 1;
+			rtDesc.mClearValue.depth = 1.0f;
+			rtDesc.mClearValue.stencil = 0;
+			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+			rtDesc.mDepth = 1;
+			rtDesc.mWidth = mSettings.mWidth;
+			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mSampleCount = SAMPLE_COUNT_1;
+			rtDesc.mSampleQuality = 0;
+
+			for (int i = 0; i < gImageCount; ++i)
+			{
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetR[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetG[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetB[i]);
+			}
+		}
+
+	}
+
+	void RemoveRenderTargets()
+	{
+		removeRenderTarget(pRenderer, pDepthBuffer);
+
+		for (int i = 0; i < gImageCount; ++i)
+		{
+			removeRenderTarget(pRenderer, pRenderTargetHDR[i]);
+			removeRenderTarget(pRenderer, pRenderTargetR[i]);
+			removeRenderTarget(pRenderer, pRenderTargetG[i]);
+			removeRenderTarget(pRenderer, pRenderTargetB[i]);
 		}
 	}
 
@@ -654,6 +867,7 @@ class CircularDOF: public IApp
 
 	void AddPipelines()
 	{
+		// HDR Scene Pipeline
 		{
 			VertexLayout vertexLayout = {};
 			vertexLayout.mAttribCount = 2;
@@ -677,64 +891,77 @@ class CircularDOF: public IApp
 			pipelineSettings.mRenderTargetCount = 1;
 			pipelineSettings.pDepthState = pDepthDefault;
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-			pipelineSettings.pColorFormats =
-				&pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-			pipelineSettings.mSampleCount =
-				pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-			pipelineSettings.mSampleQuality =
-				pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-			pipelineSettings.pRootSignature = pRootSignature;
-			pipelineSettings.pShaderProgram = pBasicShader;
+			pipelineSettings.pColorFormats = &pRenderTargetHDR[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pRenderTargetHDR[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetHDR[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureScene;
+			pipelineSettings.pShaderProgram = pShaderBasic;
 			pipelineSettings.pVertexLayout = &vertexLayout;
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
-			addPipeline(pRenderer, &desc, &pPipelineForwardPass);
+			addPipeline(pRenderer, &desc, &pPipelineScene);
+		}
+
+		// Horizontal
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = pDepthNone;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+			pipelineSettings.pColorFormats = &pRenderTargetR[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pRenderTargetR[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetR[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureHorizontalPass;
+			pipelineSettings.pShaderProgram = pShaderHorizontalDof;
+			pipelineSettings.pRasterizerState = pRasterDefault;
+
+			addPipeline(pRenderer, &desc, &pPipelineHorizontalDOF);
+		}
+
+		// Composite
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = pDepthNone;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+			pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureCompositePass;
+			pipelineSettings.pShaderProgram = pShaderComposite;
+			pipelineSettings.pRasterizerState = pRasterDefault;
+
+			addPipeline(pRenderer, &desc, &pPipelineComposite);
 		}
 	}
 
 	void RemovePipelines()
 	{
-		removePipeline(pRenderer, pPipelineForwardPass);
-	}
-
-	// Render Targets
-
-	void AddRenderTargets()
-	{
-		ClearValue colorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		// Depth Buffer
-		{
-			RenderTargetDesc rtDesc = {};
-			rtDesc.mArraySize = 1;
-			rtDesc.mClearValue.depth = 1.0f;
-			rtDesc.mClearValue.stencil = 0;
-			rtDesc.mFormat = TinyImageFormat_D24_UNORM_S8_UINT;
-			rtDesc.mDepth = 1;
-			rtDesc.mWidth = mSettings.mWidth;
-			rtDesc.mHeight = mSettings.mHeight;
-			rtDesc.mSampleCount = SAMPLE_COUNT_1;
-			rtDesc.mSampleQuality = 0;
-			::addRenderTarget(pRenderer, &rtDesc, &pDepthBuffer);
-		}
-	}
-
-	void RemoveRenderTargets()
-	{
-		removeRenderTarget(pRenderer, pDepthBuffer);
+		removePipeline(pRenderer, pPipelineScene);
+		removePipeline(pRenderer, pPipelineHorizontalDOF);
+		removePipeline(pRenderer, pPipelineComposite);
 	}
 
 	// Commands
-
 	void AddCmds()
 	{
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHDR);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
 
 	void RemoveCmds()
 	{
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsHDR);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);
 	}
 

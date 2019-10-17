@@ -29,6 +29,10 @@
   <ItemGroup>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.frag" />

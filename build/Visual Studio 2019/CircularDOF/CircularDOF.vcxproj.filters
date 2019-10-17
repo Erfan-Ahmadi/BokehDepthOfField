@@ -39,6 +39,18 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp">
