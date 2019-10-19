@@ -13,5 +13,5 @@ float4 main(VSOutput input) : SV_TARGET
 	// luma trick to mimic HDR, and take advantage of 16 bit buffers
 	float lum = dot(texel.rgb, float3(0.2126,0.7152,0.0722)) * 1.8;
 	texel = texel * (1.0 + 0.2*lum*lum*lum);
-    return texel * texel;
+    return texel;
 }

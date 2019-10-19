@@ -27,26 +27,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.vert" />
+    <ClCompile Include="..\..\..\src\SinglePassBokeh\SinglePassBokeh.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\basic.frag" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\basic.vert" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\profile.frag" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\profile.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{03eb28e8-329a-4b11-a5d6-0dd2e01716f7}</ProjectGuid>
+    <ProjectGuid>{b9af42eb-a67b-41a4-bc77-e44e0396b802}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>CircularDOF</RootNamespace>
+    <RootNamespace>SinglePassBokeh</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -300,7 +292,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(TheForge)\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TheForge)Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -345,7 +337,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(TheForge)\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TheForge)Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
     </Link>
     <PostBuildEvent>

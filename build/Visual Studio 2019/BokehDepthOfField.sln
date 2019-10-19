@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.29215.179
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CircularDOF", "CircularDOF\CircularDOF.vcxproj", "{03EB28E8-329A-4B11-A5D6-0DD2E01716F7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SinglePassBokeh", "SinglePassBokeh\SinglePassBokeh.vcxproj", "{B9AF42EB-A67B-41A4-BC77-E44E0396B802}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		DebugDx|x64 = DebugDx|x64
@@ -27,6 +29,18 @@ Global
 		{03EB28E8-329A-4B11-A5D6-0DD2E01716F7}.ReleaseDx11|x64.Build.0 = ReleaseDx11|x64
 		{03EB28E8-329A-4B11-A5D6-0DD2E01716F7}.ReleaseVk|x64.ActiveCfg = ReleaseVk|x64
 		{03EB28E8-329A-4B11-A5D6-0DD2E01716F7}.ReleaseVk|x64.Build.0 = ReleaseVk|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.DebugDx|x64.Build.0 = DebugDx|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.DebugDx11|x64.ActiveCfg = DebugDx11|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.DebugDx11|x64.Build.0 = DebugDx11|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.DebugVk|x64.ActiveCfg = DebugVk|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.DebugVk|x64.Build.0 = DebugVk|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseDx11|x64.ActiveCfg = ReleaseDx11|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseDx11|x64.Build.0 = ReleaseDx11|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseVk|x64.ActiveCfg = ReleaseVk|x64
+		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseVk|x64.Build.0 = ReleaseVk|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
