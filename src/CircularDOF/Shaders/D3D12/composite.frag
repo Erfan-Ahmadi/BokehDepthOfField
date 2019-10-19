@@ -86,7 +86,7 @@ float4 main(VSOutput input) : SV_TARGET
 {	
 	uint w, h;
 	TextureR.GetDimensions(w, h);
-	float2 step = 1.0f / w;
+	float2 step = 1.0f / float2(w, h);
 	Texture.GetDimensions(w, h);
 	
     float4 valR = float4(0, 0, 0, 0);
@@ -117,5 +117,5 @@ float4 main(VSOutput input) : SV_TARGET
     float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY) + dot(valR.zw, Kernel1Weights_RealX_ImY);
     float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY) + dot(valG.zw, Kernel1Weights_RealX_ImY);
     float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY) + dot(valB.zw, Kernel1Weights_RealX_ImY);
-    return float4(float3(redChannel, greenChannel, blueChannel), w);
+    return float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
 }

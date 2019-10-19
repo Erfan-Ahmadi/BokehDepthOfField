@@ -3,6 +3,8 @@
 #include "Common_3/OS/Interfaces/IProfiler.h"
 #include "Middleware_3/UI/AppUI.h"
 
+#include "Common_3/ThirdParty/OpenSource/Nothings/stb_image.h"
+
 #include "Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
@@ -910,7 +912,7 @@ class CircularDOF: public IApp
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue.depth = 1.0f;
 			rtDesc.mClearValue.stencil = 0;
-			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+			rtDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth;
 			rtDesc.mHeight = mSettings.mHeight;
@@ -1046,10 +1048,15 @@ class CircularDOF: public IApp
 
 	bool LoadModels()
 	{
+		int width, height, channels;
+		uint8_t* raw_image = stbi_load("../../../../art/Textures/london.jpg", &width, &height, &channels, 4);
+
+		RawImageData raw_image_data = { raw_image, TinyImageFormat_R8G8B8A8_SRGB, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
+
 		// Custom Texture
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
-		textureDesc.pFilename = pTexturesFileNames[2];
+		textureDesc.pRawImageData = &raw_image_data;
 		textureDesc.ppTexture = &pCustomTexture;
 		addResource(&textureDesc, true);
 

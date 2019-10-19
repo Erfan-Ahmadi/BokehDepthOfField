@@ -87,7 +87,7 @@ PSOut main(VSOutput input) : SV_TARGET
 
 	uint w, h;
 	Texture.GetDimensions(w, h);
-	float2 step = 1.0f / w;
+	float2 step = 1.0f / float2(w, h);
 	
     float4 valR = float4(0,0,0,0);
     float4 valG = float4(0,0,0,0);
