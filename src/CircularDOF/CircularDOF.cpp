@@ -88,6 +88,8 @@ RootSignature* pRootSignatureCompositePass 										= NULL;
 
 Sampler* pSamplerLinear;
 
+Texture* pCustomTexture															= NULL;
+
 RenderTarget* pDepthBuffer;
 
 RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL }; //R16B16G16A16
@@ -100,10 +102,11 @@ RasterizerState* pRasterDefault 												= NULL;
 DepthState* pDepthDefault 														= NULL;
 DepthState* pDepthNone 															= NULL;
 
-Buffer* pUniformBuffersScene[gImageCount] 									= { NULL };
+Buffer* pUniformBuffersScene[gImageCount] 										= { NULL };
 Buffer* pUniformBuffersDOF[gImageCount] 										= { NULL };
 
-UniformDataScene gUniformDataScene;
+UniformDataScene	gUniformDataScene;
+UniformDataDOF		gUniformDataDOF;
 SceneData gSceneData;
 
 //--------------------------------------------------------------------------------------------
@@ -117,6 +120,12 @@ GpuProfiler* pGpuProfiler				= NULL;
 ICameraController* pCameraController	= NULL;
 TextDrawDesc gFrameTimeDraw				= TextDrawDesc(0, 0xff00ffff, 18);
 
+const char* pTexturesFileNames [] =
+{
+	"stars",
+	"floor",
+	"curtain"
+};
 
 const char* pszBases[FSR_Count] = {
 	"../../../../src/Shaders/bin",													// FSR_BinShaders
@@ -195,6 +204,7 @@ class CircularDOF: public IApp
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pGui->AddWidget(SliderFloatWidget("Filter Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 		// Camera
 		CameraMotionParameters cmp { 40.0f, 30.0f, 100.0f };
@@ -229,7 +239,7 @@ class CircularDOF: public IApp
 			}, this
 		};
 		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
 			if (!bToggleMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
@@ -379,9 +389,10 @@ class CircularDOF: public IApp
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
-		BufferUpdateDesc viewProjCbv = { pUniformBuffersScene[gFrameIndex],
-										&gUniformDataScene };
+		BufferUpdateDesc viewProjCbv = { pUniformBuffersScene[gFrameIndex], &gUniformDataScene };
 		updateResource(&viewProjCbv);
+		BufferUpdateDesc uniformDOF = { pUniformBuffersDOF[gFrameIndex], &gUniformDataDOF };
+		updateResource(&uniformDOF);
 
 		// Load Actions
 		LoadActionsDesc loadActions = {};
@@ -397,6 +408,12 @@ class CircularDOF: public IApp
 		loadActions.mClearDepth.stencil = 0;
 
 		RenderTarget* pHdrRenderTarget = pRenderTargetHDR[gFrameIndex];
+		RenderTarget* pHorizontalRenderTargets[3] = 
+		{
+			pRenderTargetR[gFrameIndex],
+			pRenderTargetG[gFrameIndex],
+			pRenderTargetB[gFrameIndex],
+		};
 
 		Cmd* cmd = ppCmdsHDR[gFrameIndex];
 		beginCmd(cmd);
@@ -420,21 +437,52 @@ class CircularDOF: public IApp
 			cmdSetScissor(cmd, 0, 0, pHdrRenderTarget->mDesc.mWidth,
 				pHdrRenderTarget->mDesc.mHeight);
 
-			cmdBindDescriptorSet(cmd, gFrameIndex,
-				pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
-
 			cmdBindPipeline(cmd, pPipelineScene);
 			{
 				for (int i = 0; i < gSceneData.meshes.size(); ++i)
 				{
-					Buffer* pVertexBuffers [] = { gSceneData.meshes[i]->pPositionStream,
-												gSceneData.meshes[i]->pNormalStream };
-					cmdBindVertexBuffer(cmd, 2, pVertexBuffers, NULL);
-					cmdBindIndexBuffer(cmd, gSceneData.meshes[i]->pIndicesStream, 0);
-					cmdDrawIndexed(cmd, gSceneData.meshes[i]->mCountIndices, 0, 0);
+					cmdBindDescriptorSet(cmd, 0, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_NONE]);
+					cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+					cmdDraw(cmd, 3, 0);
 				}
 			}
 
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsHorizontalDof[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Horizontal Blur Pass", true);
+
+			TextureBarrier textureBarriers[4] =
+			{
+				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
+
+			loadActions = {};
+
+			cmdBindRenderTargets(cmd, 3, pHorizontalRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pHorizontalRenderTargets[0]->mDesc.mWidth,
+				(float)pHorizontalRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pHorizontalRenderTargets[0]->mDesc.mWidth,
+				pHorizontalRenderTargets[0]->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineHorizontalDOF);
+			{
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		}
 		endCmd(cmd);
@@ -445,16 +493,19 @@ class CircularDOF: public IApp
 		{
 			RenderTarget* pSwapChainRenderTarget =
 				pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-			;
+			
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
 
-			TextureBarrier textureBarriers[2] =
+			TextureBarrier textureBarriers[5] =
 			{
 				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
 
 			loadActions = {};
 			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
@@ -464,9 +515,6 @@ class CircularDOF: public IApp
 				(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
 				pSwapChainRenderTarget->mDesc.mHeight);
-
-			cmdBindDescriptorSet(cmd, gFrameIndex,
-				pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 
 			cmdBindPipeline(cmd, pPipelineComposite);
 			{
@@ -577,9 +625,9 @@ class CircularDOF: public IApp
 		SamplerDesc samplerDesc = { FILTER_LINEAR,
 								   FILTER_LINEAR,
 								   MIPMAP_MODE_NEAREST,
-								   ADDRESS_MODE_CLAMP_TO_EDGE,
-								   ADDRESS_MODE_CLAMP_TO_EDGE,
-								   ADDRESS_MODE_CLAMP_TO_EDGE };
+								   ADDRESS_MODE_REPEAT,
+								   ADDRESS_MODE_REPEAT,
+								   ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &samplerDesc, &pSamplerLinear);
 	}
 
@@ -611,7 +659,7 @@ class CircularDOF: public IApp
 
 	void AddBuffers()
 	{
-		// Forward
+		// Scene Uniform
 		{
 			BufferLoadDesc bufferDesc = {};
 			bufferDesc = {};
@@ -627,6 +675,23 @@ class CircularDOF: public IApp
 				addResource(&bufferDesc);
 			}
 		}
+
+		// DOF Uniform
+		{
+			BufferLoadDesc bufferDesc = {};
+			bufferDesc = {};
+			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			bufferDesc.mDesc.mSize = sizeof(gUniformDataScene);
+			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			bufferDesc.pData = NULL;
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				bufferDesc.ppBuffer = &pUniformBuffersDOF[i];
+				addResource(&bufferDesc);
+			}
+		}
 	}
 
 	void RemoveBuffers()
@@ -634,6 +699,7 @@ class CircularDOF: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pUniformBuffersScene[i]);
+			removeResource(pUniformBuffersDOF[i]);
 		}
 	}
 
@@ -745,14 +811,21 @@ class CircularDOF: public IApp
 	{
 		// HDR
 		{
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "Texture";
+				params[0].ppTextures = &pCustomTexture;
+				updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_NONE], 1, params);
+			}
+
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				DescriptorData params[1] = {};
 				params[0].pName = "UniformData";
 				params[0].ppBuffers = &pUniformBuffersScene[i];
-				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
-					params);
+				//updateDescriptorSet(pRenderer, i,
+				//	pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+				//	params);
 			}
 		}
 
@@ -760,11 +833,13 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[1] = {};
+				DescriptorData params[2] = {};
 				params[0].pName = "Texture";
 				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
+				params[1].pName = "UniformDOF";
+				params[1].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2,
 					params);
 			}
 		}
@@ -773,17 +848,19 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[4] = {};
-				params[0].pName = "Texture";
-				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
-				params[1].pName = "RComponent";
-				params[1].ppTextures = &pRenderTargetR[i]->pTexture;
-				params[2].pName = "GComponent";
-				params[2].ppTextures = &pRenderTargetG[i]->pTexture;
-				params[3].pName = "BComponent";
-				params[3].ppTextures = &pRenderTargetB[i]->pTexture;
+				DescriptorData params[5] = {};
+				params[0].pName = "UniformDOF";
+				params[0].ppBuffers = &pUniformBuffersDOF[i];
+				params[1].pName = "Texture";
+				params[1].ppTextures = &pRenderTargetHDR[i]->pTexture;
+				params[2].pName = "TextureR";
+				params[2].ppTextures = &pRenderTargetR[i]->pTexture;
+				params[3].pName = "TextureG";
+				params[3].ppTextures = &pRenderTargetG[i]->pTexture;
+				params[4].pName = "TextureB";
+				params[4].ppTextures = &pRenderTargetB[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 5,
 					params);
 			}
 		}
@@ -896,7 +973,7 @@ class CircularDOF: public IApp
 			pipelineSettings.mSampleQuality = pRenderTargetHDR[0]->mDesc.mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignatureScene;
 			pipelineSettings.pShaderProgram = pShaderBasic;
-			pipelineSettings.pVertexLayout = &vertexLayout;
+			//pipelineSettings.pVertexLayout = &vertexLayout;
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
 			addPipeline(pRenderer, &desc, &pPipelineScene);
@@ -969,6 +1046,13 @@ class CircularDOF: public IApp
 
 	bool LoadModels()
 	{
+		// Custom Texture
+		TextureLoadDesc textureDesc = {};
+		textureDesc.mRoot = FSR_Textures;
+		textureDesc.pFilename = pTexturesFileNames[2];
+		textureDesc.ppTexture = &pCustomTexture;
+		addResource(&textureDesc, true);
+
 		AssimpImporter importer;
 
 		AssimpImporter::Model model;
