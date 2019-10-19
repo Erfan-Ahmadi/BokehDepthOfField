@@ -850,19 +850,17 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[5] = {};
+				DescriptorData params[4] = {};
 				params[0].pName = "UniformDOF";
 				params[0].ppBuffers = &pUniformBuffersDOF[i];
-				params[1].pName = "Texture";
-				params[1].ppTextures = &pRenderTargetHDR[i]->pTexture;
-				params[2].pName = "TextureR";
-				params[2].ppTextures = &pRenderTargetR[i]->pTexture;
-				params[3].pName = "TextureG";
-				params[3].ppTextures = &pRenderTargetG[i]->pTexture;
-				params[4].pName = "TextureB";
-				params[4].ppTextures = &pRenderTargetB[i]->pTexture;
+				params[1].pName = "TextureR";
+				params[1].ppTextures = &pRenderTargetR[i]->pTexture;
+				params[2].pName = "TextureG";
+				params[2].ppTextures = &pRenderTargetG[i]->pTexture;
+				params[3].pName = "TextureB";
+				params[3].ppTextures = &pRenderTargetB[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 5,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 4,
 					params);
 			}
 		}
