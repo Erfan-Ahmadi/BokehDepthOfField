@@ -14,7 +14,7 @@ struct PsIn
 SamplerState	uSampler0		: register(s0);
 
 // material parameters
-Texture2D textureMaps[]			: register(t0);
+Texture2D textureMaps[]			: register(t3);
 
 float4 main(PsIn input) : SV_TARGET
 {

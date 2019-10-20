@@ -603,6 +603,7 @@ class CircularDOF: public IApp
 				{
 					MeshBatch* mesh = gSponzaSceneData.MeshBatches[i];
 					int materialID = mesh->MaterialID;
+					materialID *= 5;
 
 					data.mapIDs[0] = gSponzaTextureIndexforMaterial[materialID];
 
@@ -797,7 +798,7 @@ class CircularDOF: public IApp
 		// Static Samplers
 		SamplerDesc samplerDesc = { FILTER_LINEAR,
 								   FILTER_LINEAR,
-								   MIPMAP_MODE_NEAREST,
+								   MIPMAP_MODE_LINEAR,
 								   ADDRESS_MODE_REPEAT,
 								   ADDRESS_MODE_REPEAT,
 								   ADDRESS_MODE_REPEAT };
@@ -1262,189 +1263,193 @@ class CircularDOF: public IApp
 
 		//00 : leaf
 		gSponzaTextureIndexforMaterial.push_back(66);
-		//gSponzaTextureIndexforMaterial.push_back(67);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(68);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(67);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(68);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		//01 : vase_round
 		gSponzaTextureIndexforMaterial.push_back(78);
-		//gSponzaTextureIndexforMaterial.push_back(79);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(80);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(79);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(80);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		//02 : Material__57 (Plant)
 		gSponzaTextureIndexforMaterial.push_back(75);
-		//gSponzaTextureIndexforMaterial.push_back(76);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(77);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(76);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(77);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 03 : Material__298
 		gSponzaTextureIndexforMaterial.push_back(9);
-		//gSponzaTextureIndexforMaterial.push_back(10);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(11);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(10);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(11);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 04 : 16___Default (gi_flag)
 		gSponzaTextureIndexforMaterial.push_back(8);
-		//gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!!
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!!
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 05 : bricks
 		gSponzaTextureIndexforMaterial.push_back(22);
-		//gSponzaTextureIndexforMaterial.push_back(23);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(24);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(23);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(24);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 06 :  arch
 		gSponzaTextureIndexforMaterial.push_back(19);
-		//gSponzaTextureIndexforMaterial.push_back(20);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(21);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(20);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(21);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 07 : ceiling
 		gSponzaTextureIndexforMaterial.push_back(25);
-		//gSponzaTextureIndexforMaterial.push_back(26);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(27);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(26);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(27);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 08 : column_a
 		gSponzaTextureIndexforMaterial.push_back(28);
-		//gSponzaTextureIndexforMaterial.push_back(29);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(30);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(29);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(30);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 09 : Floor
 		gSponzaTextureIndexforMaterial.push_back(60);
-		//gSponzaTextureIndexforMaterial.push_back(61);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(62);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(61);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(62);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 10 : column_c
 		gSponzaTextureIndexforMaterial.push_back(34);
-		//gSponzaTextureIndexforMaterial.push_back(35);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(36);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(35);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(36);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 11 : details
 		gSponzaTextureIndexforMaterial.push_back(45);
-		//gSponzaTextureIndexforMaterial.push_back(47);
-		//gSponzaTextureIndexforMaterial.push_back(46);
-		//gSponzaTextureIndexforMaterial.push_back(48);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(47);
+		gSponzaTextureIndexforMaterial.push_back(46);
+		gSponzaTextureIndexforMaterial.push_back(48);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 12 : column_b
 		gSponzaTextureIndexforMaterial.push_back(31);
-		//gSponzaTextureIndexforMaterial.push_back(32);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(33);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(32);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(33);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 13 : Material__47 - it seems missing
 		gSponzaTextureIndexforMaterial.push_back(19);
-		//gSponzaTextureIndexforMaterial.push_back(20);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(21);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(20);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(21);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 14 : flagpole
 		gSponzaTextureIndexforMaterial.push_back(57);
-		//gSponzaTextureIndexforMaterial.push_back(58);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(59);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(58);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(59);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 15 : fabric_e (green)
 		gSponzaTextureIndexforMaterial.push_back(51);
-		//gSponzaTextureIndexforMaterial.push_back(52);
-		//gSponzaTextureIndexforMaterial.push_back(53);
-		//gSponzaTextureIndexforMaterial.push_back(54);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(52);
+		gSponzaTextureIndexforMaterial.push_back(53);
+		gSponzaTextureIndexforMaterial.push_back(54);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 16 : fabric_d (blue)
 		gSponzaTextureIndexforMaterial.push_back(49);
-		//gSponzaTextureIndexforMaterial.push_back(50);
-		//gSponzaTextureIndexforMaterial.push_back(53);
-		//gSponzaTextureIndexforMaterial.push_back(54);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(50);
+		gSponzaTextureIndexforMaterial.push_back(53);
+		gSponzaTextureIndexforMaterial.push_back(54);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 17 : fabric_a (red)
 		gSponzaTextureIndexforMaterial.push_back(55);
-		//gSponzaTextureIndexforMaterial.push_back(56);
-		//gSponzaTextureIndexforMaterial.push_back(53);
-		//gSponzaTextureIndexforMaterial.push_back(54);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(56);
+		gSponzaTextureIndexforMaterial.push_back(53);
+		gSponzaTextureIndexforMaterial.push_back(54);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 18 : fabric_g (curtain_blue)
 		gSponzaTextureIndexforMaterial.push_back(37);
-		//gSponzaTextureIndexforMaterial.push_back(38);
-		//gSponzaTextureIndexforMaterial.push_back(43);
-		//gSponzaTextureIndexforMaterial.push_back(44);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(38);
+		gSponzaTextureIndexforMaterial.push_back(43);
+		gSponzaTextureIndexforMaterial.push_back(44);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 19 : fabric_c (curtain_red)
 		gSponzaTextureIndexforMaterial.push_back(41);
-		//gSponzaTextureIndexforMaterial.push_back(42);
-		//gSponzaTextureIndexforMaterial.push_back(43);
-		//gSponzaTextureIndexforMaterial.push_back(44);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(42);
+		gSponzaTextureIndexforMaterial.push_back(43);
+		gSponzaTextureIndexforMaterial.push_back(44);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 20 : fabric_f (curtain_green)
 		gSponzaTextureIndexforMaterial.push_back(39);
-		//gSponzaTextureIndexforMaterial.push_back(40);
-		//gSponzaTextureIndexforMaterial.push_back(43);
-		//gSponzaTextureIndexforMaterial.push_back(44);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(40);
+		gSponzaTextureIndexforMaterial.push_back(43);
+		gSponzaTextureIndexforMaterial.push_back(44);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 21 : chain
 		gSponzaTextureIndexforMaterial.push_back(12);
-		//gSponzaTextureIndexforMaterial.push_back(14);
-		//gSponzaTextureIndexforMaterial.push_back(13);
-		//gSponzaTextureIndexforMaterial.push_back(15);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(14);
+		gSponzaTextureIndexforMaterial.push_back(13);
+		gSponzaTextureIndexforMaterial.push_back(15);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 22 : vase_hanging
 		gSponzaTextureIndexforMaterial.push_back(72);
-		//gSponzaTextureIndexforMaterial.push_back(73);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(74);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(73);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(74);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 23 : vase
 		gSponzaTextureIndexforMaterial.push_back(69);
-		//gSponzaTextureIndexforMaterial.push_back(70);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(71);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(70);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(71);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 24 : Material__25 (lion)
 		gSponzaTextureIndexforMaterial.push_back(16);
-		//gSponzaTextureIndexforMaterial.push_back(17);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(18);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(17);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(18);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 
 		// 25 : roof
 		gSponzaTextureIndexforMaterial.push_back(63);
-		//gSponzaTextureIndexforMaterial.push_back(64);
-		//gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-		//gSponzaTextureIndexforMaterial.push_back(65);
-		//gSponzaTextureIndexforMaterial.push_back(AO);
+		gSponzaTextureIndexforMaterial.push_back(64);
+		gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+		gSponzaTextureIndexforMaterial.push_back(65);
+		gSponzaTextureIndexforMaterial.push_back(AO);
 	}
 
+	//Loads sponza textures and Sponza mesh
 	bool LoadSponza()
 	{
+		//load Sponza
+		//eastl::vector<Image> toLoad(TOTAL_IMGS);
+		//adding material textures
 		for (int i = 0; i < TOTAL_SPONZA_IMGS; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
@@ -1536,14 +1541,13 @@ class CircularDOF: public IApp
 
 		//set constant buffer for sponza
 		{
-			cbPerObj data;
-
+			cbPerObj data = {};
 			data.mWorldMat = gSponzaSceneData.WorldMatrix;
 
 			BufferLoadDesc desc = {};
 			desc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			desc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			desc.mDesc.mSize = sizeof(data);
+			desc.mDesc.mSize = sizeof(cbPerObj);
 			desc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			desc.pData = &data;
 			desc.ppBuffer = &gSponzaSceneData.pConstantBuffer;
@@ -1551,7 +1555,7 @@ class CircularDOF: public IApp
 		}
 
 		AssignSponzaTextures();
-
+		finishResourceLoading();
 		return true;
 	}
 
