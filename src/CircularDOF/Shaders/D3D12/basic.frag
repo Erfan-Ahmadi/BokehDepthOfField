@@ -1,17 +1,24 @@
-struct VSOutput 
+cbuffer cbTextureRootConstants : register(b2) 
 {
-	float4 Position : SV_POSITION;
-	float2 UV		: TEXCOORD0;
+	uint albedoMap;
+}
+
+struct PsIn
+{    
+    float3 normal	: TEXCOORD0;
+	float3 pos		: TEXCOORD1;
+	float2 uv		: TEXCOORD2;
+    float4 position : SV_Position;
 };
 
 SamplerState	uSampler0		: register(s0);
-Texture2D		Texture			: register(t0);
 
-float4 main(VSOutput input) : SV_TARGET
+// material parameters
+Texture2D textureMaps[]			: register(t0);
+
+float4 main(PsIn input) : SV_TARGET
 {
-	float4 texel = Texture.Sample(uSampler0, input.UV);
-	// luma trick to mimic HDR, and take advantage of 16 bit buffers
-	float lum = dot(texel.rgb, float3(0.2126,0.7152,0.0722)) * 1.8;
-	texel = texel * (1.0 + 0.2*lum*lum*lum);
-    return texel * texel;
+	//load albedo
+	float3 albedo = textureMaps[albedoMap].Sample(uSampler0, input.uv).rgb;
+	return float4(albedo, 1);
 }

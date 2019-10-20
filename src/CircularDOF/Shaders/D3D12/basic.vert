@@ -1,15 +1,37 @@
-struct VSOutput 
+struct VsIn
 {
-	float4 Position	: SV_POSITION;
-    float2 UV		: TEXCOORD0;
+	float3 position : POSITION;
+	float3 normal	: NORMAL;
+	float2 texCoord : TEXCOORD;
 };
 
-VSOutput main(uint VertexID: SV_VertexID)
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME) 
 {
-	VSOutput result;
-	
-	result.UV = float2((VertexID << 1) & 2, VertexID & 2);
-	result.Position = float4(float2(result.UV * 2.0f - 1.0f) * float2(1, -1), 0.0f, 1.0f);
+	float4x4	projView;
+}
 
-	return result;
+cbuffer cbPerProp : register(b1)
+{
+	float4x4	world;
+}
+
+struct PsIn
+{    
+    float3 normal	: TEXCOORD0;
+	float3 pos		: TEXCOORD1;
+	float2 uv		: TEXCOORD2;
+    float4 position : SV_Position;
+};
+
+PsIn main(VsIn In)
+{
+	PsIn Out;
+
+	Out.position = mul(projView, mul(world, float4(In.position.xyz, 1.0f)));
+	Out.normal = mul((float3x3)world, In.normal.xyz).xyz;
+
+	Out.pos = mul(world, float4(In.position.xyz, 1.0f)).xyz;
+	Out.uv = In.texCoord.xy;
+
+	return Out;
 }
