@@ -67,54 +67,54 @@ struct UniformDataDOF
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
 
-Renderer* pRenderer = NULL;
+Renderer* pRenderer																= NULL;
 
-Queue* pGraphicsQueue = NULL;
+Queue* pGraphicsQueue															= NULL;
 
-CmdPool* pCmdPool = NULL;
-Cmd** ppCmdsHDR = NULL;
-Cmd** ppCmdsHorizontalDof = NULL;
-Cmd** ppCmdsComposite = NULL;
+CmdPool* pCmdPool																= NULL;
+Cmd** ppCmdsHDR 																= NULL;
+Cmd** ppCmdsHorizontalDof 														= NULL;
+Cmd** ppCmdsComposite															= NULL;
 
-SwapChain* pSwapChain = NULL;
+SwapChain* pSwapChain 															= NULL;
 
-Fence* pRenderCompleteFences[gImageCount] = { NULL };
+Fence* pRenderCompleteFences[gImageCount] 										= { NULL };
 
-Semaphore* pImageAcquiredSemaphore = NULL;
-Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore 												= NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 
-Pipeline* pPipelineScene = NULL;
-Pipeline* pPipelineHorizontalDOF = NULL;
-Pipeline* pPipelineComposite = NULL;
+Pipeline* pPipelineScene 														= NULL;
+Pipeline* pPipelineHorizontalDOF 												= NULL;
+Pipeline* pPipelineComposite 													= NULL;
 
-Shader* pShaderBasic = NULL;
-Shader* pShaderHorizontalDof = NULL;
-Shader* pShaderComposite = NULL;
+Shader* pShaderBasic 															= NULL;
+Shader* pShaderHorizontalDof 													= NULL;
+Shader* pShaderComposite 														= NULL;
 
-DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] = { NULL };
-DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] = { NULL };
-DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] = { NULL };
+DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
+DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 
-RootSignature* pRootSignatureScene = NULL;
-RootSignature* pRootSignatureHorizontalPass = NULL;
-RootSignature* pRootSignatureCompositePass = NULL;
+RootSignature* pRootSignatureScene 												= NULL;
+RootSignature* pRootSignatureHorizontalPass										= NULL;
+RootSignature* pRootSignatureCompositePass 										= NULL;
 
 Sampler* pSamplerLinear;
 
 RenderTarget* pDepthBuffer;
 
-RenderTarget* pRenderTargetHDR[gImageCount] = { NULL };
-RenderTarget* pRenderTargetR[gImageCount] = { NULL };
-RenderTarget* pRenderTargetG[gImageCount] = { NULL };
-RenderTarget* pRenderTargetB[gImageCount] = { NULL };
+RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetR[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetG[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetB[gImageCount]										= { NULL };
 
-RasterizerState* pRasterDefault = NULL;
+RasterizerState* pRasterDefault 												= NULL;
 
-DepthState* pDepthDefault = NULL;
-DepthState* pDepthNone = NULL;
+DepthState* pDepthDefault 														= NULL;
+DepthState* pDepthNone 															= NULL;
 
-Buffer* pUniformBuffersProjView[gImageCount] = { NULL };
-Buffer* pUniformBuffersDOF[gImageCount] = { NULL };
+Buffer* pUniformBuffersProjView[gImageCount] 									= { NULL };
+Buffer* pUniformBuffersDOF[gImageCount] 										= { NULL };
 
 cbPerPass			gUniformDataScene;
 UniformDataDOF		gUniformDataDOF;
@@ -126,7 +126,7 @@ SceneData			gSponzaSceneData;
 
 #define TOTAL_SPONZA_IMGS 84
 
-Texture * pMaterialTexturesSponza[TOTAL_SPONZA_IMGS] = { NULL };
+Texture * pMaterialTexturesSponza[TOTAL_SPONZA_IMGS]							= { NULL };
 
 eastl::vector<int>	gSponzaTextureIndexforMaterial;
 
@@ -273,13 +273,14 @@ const char* pMaterialImageFileNames[] = {
 //--------------------------------------------------------------------------------------------
 
 UIApp gAppUI;
-GuiComponent* pGui = NULL;
+GuiComponent* pGui								= NULL;
 VirtualJoystickUI gVirtualJoystick;
-GpuProfiler* pGpuProfiler = NULL;
-ICameraController* pCameraController = NULL;
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+GpuProfiler* pGpuProfiler						= NULL;
+ICameraController* pCameraController			= NULL;
+TextDrawDesc gFrameTimeDraw						= TextDrawDesc(0, 0xff00ffff, 18);
 
-const char* pszBases[FSR_Count] = {
+const char* pszBases[FSR_Count] = 
+{
 	"../../../../src/Shaders/bin",													// FSR_BinShaders
 	"../../../../src/CircularDOF/",													// FSR_SrcShaders
 	"../../../../art/",																// FSR_Textures
