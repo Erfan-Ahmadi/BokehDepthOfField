@@ -800,9 +800,10 @@ class CircularDOF: public IApp
 
 	void AddShaders()
 	{
+		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_SPONZA_IMGS) };
 		ShaderLoadDesc shaderDesc = {};
 		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "basic.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
 		return;
 		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
