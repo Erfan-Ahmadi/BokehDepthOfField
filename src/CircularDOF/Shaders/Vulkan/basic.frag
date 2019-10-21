@@ -20,8 +20,10 @@ layout(location = 0) out vec4 OutAlbedo;
 
 void main()
 {	
+
+	OutAlbedo = vec4(0, 0, 0, 1);
 	//load albedo
 	vec3 albedo = texture(sampler2D(textureMaps[cbTextureRootConstants.albedoMap], samplerLinear), InUV).rgb;
 
-	OutAlbedo = vec4(albedo, 1);
+	//OutAlbedo = vec4(albedo, 1);
 }

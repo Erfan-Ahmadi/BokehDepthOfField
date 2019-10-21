@@ -15,12 +15,12 @@
 // GLOBAL DEFINTIONS
 //--------------------------------------------------------------------------------------------
 
-uint32_t gFrameIndex			= 0;
+uint32_t gFrameIndex = 0;
 
-const uint32_t gImageCount		= 3;
+const uint32_t gImageCount = 3;
 
-bool bToggleMicroProfiler		= false;
-bool bPrevToggleMicroProfiler	= false;
+bool bToggleMicroProfiler = false;
+bool bPrevToggleMicroProfiler = false;
 
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
@@ -67,54 +67,54 @@ struct UniformDataDOF
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
 
-Renderer* pRenderer																= NULL;
+Renderer* pRenderer = NULL;
 
-Queue* pGraphicsQueue															= NULL;
+Queue* pGraphicsQueue = NULL;
 
-CmdPool* pCmdPool																= NULL;
-Cmd** ppCmdsHDR 																= NULL;
-Cmd** ppCmdsHorizontalDof 														= NULL;
-Cmd** ppCmdsComposite															= NULL;
+CmdPool* pCmdPool = NULL;
+Cmd** ppCmdsHDR = NULL;
+Cmd** ppCmdsHorizontalDof = NULL;
+Cmd** ppCmdsComposite = NULL;
 
-SwapChain* pSwapChain 															= NULL;
+SwapChain* pSwapChain = NULL;
 
-Fence* pRenderCompleteFences[gImageCount] 										= { NULL };
+Fence* pRenderCompleteFences[gImageCount] = { NULL };
 
-Semaphore* pImageAcquiredSemaphore 												= NULL;
-Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Pipeline* pPipelineScene 														= NULL;
-Pipeline* pPipelineHorizontalDOF 												= NULL;
-Pipeline* pPipelineComposite 													= NULL;
+Pipeline* pPipelineScene = NULL;
+Pipeline* pPipelineHorizontalDOF = NULL;
+Pipeline* pPipelineComposite = NULL;
 
-Shader* pShaderBasic 															= NULL;
-Shader* pShaderHorizontalDof 													= NULL;
-Shader* pShaderComposite 														= NULL;
+Shader* pShaderBasic = NULL;
+Shader* pShaderHorizontalDof = NULL;
+Shader* pShaderComposite = NULL;
 
-DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
-DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
-DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] = { NULL };
+DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] = { NULL };
+DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] = { NULL };
 
-RootSignature* pRootSignatureScene 												= NULL;
-RootSignature* pRootSignatureHorizontalPass										= NULL;
-RootSignature* pRootSignatureCompositePass 										= NULL;
+RootSignature* pRootSignatureScene = NULL;
+RootSignature* pRootSignatureHorizontalPass = NULL;
+RootSignature* pRootSignatureCompositePass = NULL;
 
 Sampler* pSamplerLinear;
 
 RenderTarget* pDepthBuffer;
 
-RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetR[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetG[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetB[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetHDR[gImageCount] = { NULL };
+RenderTarget* pRenderTargetR[gImageCount] = { NULL };
+RenderTarget* pRenderTargetG[gImageCount] = { NULL };
+RenderTarget* pRenderTargetB[gImageCount] = { NULL };
 
-RasterizerState* pRasterDefault 												= NULL;
+RasterizerState* pRasterDefault = NULL;
 
-DepthState* pDepthDefault 														= NULL;
-DepthState* pDepthNone 															= NULL;
+DepthState* pDepthDefault = NULL;
+DepthState* pDepthNone = NULL;
 
-Buffer* pUniformBuffersProjView[gImageCount] 									= { NULL };
-Buffer* pUniformBuffersDOF[gImageCount] 										= { NULL };
+Buffer* pUniformBuffersProjView[gImageCount] = { NULL };
+Buffer* pUniformBuffersDOF[gImageCount] = { NULL };
 
 cbPerPass			gUniformDataScene;
 UniformDataDOF		gUniformDataDOF;
@@ -126,13 +126,13 @@ SceneData			gSponzaSceneData;
 
 #define TOTAL_SPONZA_IMGS 84
 
-Texture* pMaterialTexturesSponza[TOTAL_SPONZA_IMGS]						= { NULL };
+Texture * pMaterialTexturesSponza[TOTAL_SPONZA_IMGS] = { NULL };
 
 eastl::vector<int>	gSponzaTextureIndexforMaterial;
 
 const char* gModel_Sponza_File = "sponza.obj";
 
-const char* pMaterialImageFileNames [] = {
+const char* pMaterialImageFileNames[] = {
 	"SponzaPBR_Textures/ao",
 	"SponzaPBR_Textures/ao",
 	"SponzaPBR_Textures/ao",
@@ -273,11 +273,11 @@ const char* pMaterialImageFileNames [] = {
 //--------------------------------------------------------------------------------------------
 
 UIApp gAppUI;
-GuiComponent* pGui						= NULL;
+GuiComponent* pGui = NULL;
 VirtualJoystickUI gVirtualJoystick;
-GpuProfiler* pGpuProfiler				= NULL;
-ICameraController* pCameraController	= NULL;
-TextDrawDesc gFrameTimeDraw				= TextDrawDesc(0, 0xff00ffff, 18);
+GpuProfiler* pGpuProfiler = NULL;
+ICameraController* pCameraController = NULL;
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 const char* pszBases[FSR_Count] = {
 	"../../../../src/Shaders/bin",													// FSR_BinShaders
@@ -293,9 +293,9 @@ const char* pszBases[FSR_Count] = {
 	"../../../../../The-Forge/Middleware_3/UI/",									// FSR_MIDDLEWARE_UI
 };
 
-class CircularDOF: public IApp
+class CircularDOF : public IApp
 {
-	public:
+public:
 	CircularDOF() {}
 
 	bool Init()
@@ -358,9 +358,9 @@ class CircularDOF: public IApp
 		pGui->AddWidget(SliderFloatWidget("Filter Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
-		CameraMotionParameters cmp { 200.0f, 250.0f, 300.0f };
-		vec3                   camPos { 100.0f, 25.0f, 0.0f };
-		vec3                   lookAt { 0 };
+		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
+		vec3                   camPos{ 100.0f, 25.0f, 0.0f };
+		vec3                   lookAt{ 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
@@ -390,7 +390,7 @@ class CircularDOF: public IApp
 			}, this
 		};
 		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
 			if (!bToggleMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
@@ -561,6 +561,13 @@ class CircularDOF: public IApp
 		loadActions.mClearDepth.stencil = 0;
 
 		RenderTarget* pSwapChainRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pHdrRenderTarget = pRenderTargetHDR[gFrameIndex];
+		RenderTarget* pHorizontalRenderTargets[3] =
+		{
+			pRenderTargetR[gFrameIndex],
+			pRenderTargetG[gFrameIndex],
+			pRenderTargetB[gFrameIndex],
+		};
 
 		Cmd* cmd = ppCmdsHDR[gFrameIndex];
 		beginCmd(cmd);
@@ -570,19 +577,19 @@ class CircularDOF: public IApp
 
 			TextureBarrier textureBarriers[2] =
 			{
-				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE }
 			};
 
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
-			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, pDepthBuffer,
+			cmdBindRenderTargets(cmd, 1, &pHdrRenderTarget, pDepthBuffer,
 				&loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
-				(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
-				pSwapChainRenderTarget->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pHdrRenderTarget->mDesc.mWidth,
+				(float)pHdrRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pHdrRenderTarget->mDesc.mWidth,
+				pHdrRenderTarget->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineScene);
 			{
@@ -606,7 +613,7 @@ class CircularDOF: public IApp
 					cmdBindDescriptorSet(cmd, 0, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_NONE]);
 					cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 
-					Buffer* pVertexBuffers [] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
+					Buffer* pVertexBuffers[] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
 					cmdBindVertexBuffer(cmd, 3, pVertexBuffers, NULL);
 
 					cmdBindIndexBuffer(cmd, mesh->pIndicesStream, 0);
@@ -615,6 +622,81 @@ class CircularDOF: public IApp
 				}
 			}
 
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsHorizontalDof[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Horizontal Blur Pass", true);
+
+			TextureBarrier textureBarriers[4] =
+			{
+				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
+
+			loadActions = {};
+
+			cmdBindRenderTargets(cmd, 3, pHorizontalRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pHorizontalRenderTargets[0]->mDesc.mWidth,
+				(float)pHorizontalRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pHorizontalRenderTargets[0]->mDesc.mWidth,
+				pHorizontalRenderTargets[0]->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineHorizontalDOF);
+			{
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsComposite[gFrameIndex];
+		beginCmd(cmd);
+		{
+			RenderTarget* pSwapChainRenderTarget =
+				pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
+
+			TextureBarrier textureBarriers[5] =
+			{
+				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
+
+			loadActions = {};
+			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
+				(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
+				pSwapChainRenderTarget->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineComposite);
+			{
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 			loadActions = {};
@@ -628,12 +710,12 @@ class CircularDOF: public IApp
 
 			gAppUI.DrawText(cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
-			#if !defined(__ANDROID__)
+#if !defined(__ANDROID__)
 			gAppUI.DrawText(
 				cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 				&gFrameTimeDraw);
 			gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-			#endif
+#endif
 
 			cmdDrawProfiler();
 
@@ -805,7 +887,6 @@ class CircularDOF: public IApp
 		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "basic.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
-		return;
 		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "horizontalDof.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderHorizontalDof);
@@ -817,7 +898,6 @@ class CircularDOF: public IApp
 	void RemoveShaders()
 	{
 		removeShader(pRenderer, pShaderBasic);
-		return;
 		removeShader(pRenderer, pShaderHorizontalDof);
 		removeShader(pRenderer, pShaderComposite);
 	}
@@ -828,18 +908,20 @@ class CircularDOF: public IApp
 	{
 		// HDR
 		{
-			const char* samplerNames = { "uSampler0 " };
+			const char* pStaticSamplerNames[] = { "uSampler0" };
+			Sampler* pStaticSamplers[] = { pSamplerLinear };
+			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[1] = { pShaderBasic };
 				RootSignatureDesc rootDesc = {};
 				rootDesc.mShaderCount = 1;
 				rootDesc.ppShaders = shaders;
-				rootDesc.mStaticSamplerCount = 1;
-				rootDesc.ppStaticSamplerNames = &samplerNames;
-				rootDesc.ppStaticSamplers = &pSamplerLinear;
-				#ifndef TARGET_IOS
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
+#ifndef TARGET_IOS
 				rootDesc.mMaxBindlessTextures = TOTAL_SPONZA_IMGS;
-				#endif
+#endif
 
 				addRootSignature(pRenderer, &rootDesc, &pRootSignatureScene);
 			}
@@ -850,7 +932,6 @@ class CircularDOF: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsScene[1]);
 		}
 
-		return;
 		// HorizontalDof
 		{
 			const char* samplerNames = { "uSampler0 " };
@@ -895,16 +976,16 @@ class CircularDOF: public IApp
 	void RemoveDescriptorSets()
 	{
 		removeRootSignature(pRenderer, pRootSignatureScene);
-		//removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
-		//removeRootSignature(pRenderer, pRootSignatureCompositePass);
+		removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
+		removeRootSignature(pRenderer, pRootSignatureCompositePass);
 		for (int i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		{
 			if (pDescriptorSetsScene[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsScene[i]);
-			//if (pDescriptorSetsHorizontalPass[i])
-			//	removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
-			//if (pDescriptorSetsCompositePass[i])
-			//	removeDescriptorSet(pRenderer, pDescriptorSetsCompositePass[i]);
+			if (pDescriptorSetsHorizontalPass[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
+			if (pDescriptorSetsCompositePass[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsCompositePass[i]);
 		}
 	}
 
@@ -915,12 +996,12 @@ class CircularDOF: public IApp
 			DescriptorData params[2] = {};
 			params[0].pName = "cbPerProp";
 			params[0].ppBuffers = &gSponzaSceneData.pConstantBuffer;
-			#ifndef TARGET_IOS
+#ifndef TARGET_IOS
 			params[1].pName = "textureMaps";
 			params[1].ppTextures = pMaterialTexturesSponza;
 			params[1].mCount = TOTAL_SPONZA_IMGS;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[0], 2, params);
-			#else
+#else
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[0], 1, params);
 
 			for (uint32_t i = 0; i < (uint32_t)SponzaProp.MeshBatches.size(); ++i)
@@ -936,13 +1017,13 @@ class CircularDOF: public IApp
 					params[0].pName = pTextureName[0];    //Albedo texture name
 					uint textureId = gSponzaTextureIndexforMaterial[materialID];
 					params[0].ppTextures = &pMaterialTextures[textureId];
-				}
+		}
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
 				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2], 1, params);
-			}
-			#endif
+	}
+#endif
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -951,9 +1032,7 @@ class CircularDOF: public IApp
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
 				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
 			}
-		}
-
-		return;
+}
 
 		// HorizontalDof
 		{
@@ -1107,8 +1186,6 @@ class CircularDOF: public IApp
 			addPipeline(pRenderer, &desc, &pPipelineScene);
 		}
 
-		return;
-
 		// Horizontal
 		{
 			TinyImageFormat formats[3] =
@@ -1158,7 +1235,6 @@ class CircularDOF: public IApp
 	void RemovePipelines()
 	{
 		removePipeline(pRenderer, pPipelineScene);
-		return;
 		removePipeline(pRenderer, pPipelineHorizontalDOF);
 		removePipeline(pRenderer, pPipelineComposite);
 	}
@@ -1169,15 +1245,15 @@ class CircularDOF: public IApp
 	{
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHDR);
-		//addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
-		//addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
 
 	void RemoveCmds()
 	{
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHDR);
-		//removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
-		//removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);
 	}
 
