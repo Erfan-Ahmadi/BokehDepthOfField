@@ -560,35 +560,29 @@ class CircularDOF: public IApp
 		loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.stencil = 0;
 
-		RenderTarget* pHdrRenderTarget = pRenderTargetHDR[gFrameIndex];
-		RenderTarget* pHorizontalRenderTargets[3] =
-		{
-			pRenderTargetR[gFrameIndex],
-			pRenderTargetG[gFrameIndex],
-			pRenderTargetB[gFrameIndex],
-		};
+		RenderTarget* pSwapChainRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
 
 		Cmd* cmd = ppCmdsHDR[gFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 		{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Scene Pass", true);
+			//cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Scene Pass", true);
 
 			TextureBarrier textureBarriers[2] =
 			{
-				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE }
 			};
 
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
-			cmdBindRenderTargets(cmd, 1, &pHdrRenderTarget, pDepthBuffer,
+			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, pDepthBuffer,
 				&loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pHdrRenderTarget->mDesc.mWidth,
-				(float)pHdrRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pHdrRenderTarget->mDesc.mWidth,
-				pHdrRenderTarget->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
+				(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
+				pSwapChainRenderTarget->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineScene);
 			{
@@ -621,83 +615,8 @@ class CircularDOF: public IApp
 				}
 			}
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-		}
-		endCmd(cmd);
-		allCmds.push_back(cmd);
-
-		cmd = ppCmdsHorizontalDof[gFrameIndex];
-		beginCmd(cmd);
-		{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Horizontal Blur Pass", true);
-
-			TextureBarrier textureBarriers[4] =
-			{
-				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
-			};
-
-			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
-
-			loadActions = {};
-
-			cmdBindRenderTargets(cmd, 3, pHorizontalRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
-
-			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pHorizontalRenderTargets[0]->mDesc.mWidth,
-				(float)pHorizontalRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pHorizontalRenderTargets[0]->mDesc.mWidth,
-				pHorizontalRenderTargets[0]->mDesc.mHeight);
-
-			cmdBindPipeline(cmd, pPipelineHorizontalDOF);
-			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_NONE]);
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
-				cmdDraw(cmd, 3, 0);
-			}
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-		}
-		endCmd(cmd);
-		allCmds.push_back(cmd);
-
-		cmd = ppCmdsComposite[gFrameIndex];
-		beginCmd(cmd);
-		{
-			RenderTarget* pSwapChainRenderTarget =
-				pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
-
-			TextureBarrier textureBarriers[5] =
-			{
-				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
-			};
-
-			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
-
-			loadActions = {};
-			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-
-			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pSwapChainRenderTarget->mDesc.mWidth,
-				(float)pSwapChainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pSwapChainRenderTarget->mDesc.mWidth,
-				pSwapChainRenderTarget->mDesc.mHeight);
-
-			cmdBindPipeline(cmd, pPipelineComposite);
-			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_NONE]);
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
-				cmdDraw(cmd, 3, 0);
-			}
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-
+			//cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			/*
 			loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
@@ -723,7 +642,7 @@ class CircularDOF: public IApp
 			gAppUI.Draw(cmd);
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-
+			*/
 			textureBarriers[0] = { pSwapChainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
 		}
@@ -989,7 +908,7 @@ class CircularDOF: public IApp
 	{
 		// HDR Scene 
 		{
-			DescriptorData params[7] = {};
+			DescriptorData params[2] = {};
 			params[0].pName = "cbPerProp";
 			params[0].ppBuffers = &gSponzaSceneData.pConstantBuffer;
 			#ifndef TARGET_IOS
@@ -1171,9 +1090,9 @@ class CircularDOF: public IApp
 			pipelineSettings.mRenderTargetCount = 1;
 			pipelineSettings.pDepthState = pDepthDefault;
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-			pipelineSettings.pColorFormats = &pRenderTargetHDR[0]->mDesc.mFormat;
-			pipelineSettings.mSampleCount = pRenderTargetHDR[0]->mDesc.mSampleCount;
-			pipelineSettings.mSampleQuality = pRenderTargetHDR[0]->mDesc.mSampleQuality;
+			pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignatureScene;
 			pipelineSettings.pShaderProgram = pShaderBasic;
 			pipelineSettings.pVertexLayout = &vertexLayout;
