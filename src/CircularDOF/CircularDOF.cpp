@@ -566,7 +566,7 @@ class CircularDOF: public IApp
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 		{
-			//cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Scene Pass", true);
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Scene Pass", true);
 
 			TextureBarrier textureBarriers[2] =
 			{
@@ -615,8 +615,8 @@ class CircularDOF: public IApp
 				}
 			}
 
-			//cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-			/*
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+
 			loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
@@ -642,7 +642,7 @@ class CircularDOF: public IApp
 			gAppUI.Draw(cmd);
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-			*/
+
 			textureBarriers[0] = { pSwapChainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
 		}
@@ -804,6 +804,7 @@ class CircularDOF: public IApp
 		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
+		return;
 		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "horizontalDof.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderHorizontalDof);
@@ -815,6 +816,7 @@ class CircularDOF: public IApp
 	void RemoveShaders()
 	{
 		removeShader(pRenderer, pShaderBasic);
+		return;
 		removeShader(pRenderer, pShaderHorizontalDof);
 		removeShader(pRenderer, pShaderComposite);
 	}
@@ -847,6 +849,7 @@ class CircularDOF: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsScene[1]);
 		}
 
+		return;
 		// HorizontalDof
 		{
 			const char* samplerNames = { "uSampler0 " };
@@ -891,16 +894,16 @@ class CircularDOF: public IApp
 	void RemoveDescriptorSets()
 	{
 		removeRootSignature(pRenderer, pRootSignatureScene);
-		removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
-		removeRootSignature(pRenderer, pRootSignatureCompositePass);
+		//removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
+		//removeRootSignature(pRenderer, pRootSignatureCompositePass);
 		for (int i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		{
 			if (pDescriptorSetsScene[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsScene[i]);
-			if (pDescriptorSetsHorizontalPass[i])
-				removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
-			if (pDescriptorSetsCompositePass[i])
-				removeDescriptorSet(pRenderer, pDescriptorSetsCompositePass[i]);
+			//if (pDescriptorSetsHorizontalPass[i])
+			//	removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
+			//if (pDescriptorSetsCompositePass[i])
+			//	removeDescriptorSet(pRenderer, pDescriptorSetsCompositePass[i]);
 		}
 	}
 
@@ -948,6 +951,8 @@ class CircularDOF: public IApp
 				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
 			}
 		}
+
+		return;
 
 		// HorizontalDof
 		{
@@ -1101,6 +1106,8 @@ class CircularDOF: public IApp
 			addPipeline(pRenderer, &desc, &pPipelineScene);
 		}
 
+		return;
+
 		// Horizontal
 		{
 			TinyImageFormat formats[3] =
@@ -1150,6 +1157,7 @@ class CircularDOF: public IApp
 	void RemovePipelines()
 	{
 		removePipeline(pRenderer, pPipelineScene);
+		return;
 		removePipeline(pRenderer, pPipelineHorizontalDOF);
 		removePipeline(pRenderer, pPipelineComposite);
 	}
@@ -1160,15 +1168,15 @@ class CircularDOF: public IApp
 	{
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHDR);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
+		//addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
+		//addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
 
 	void RemoveCmds()
 	{
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHDR);
-		removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
-		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
+		//removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
+		//removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);
 	}
 

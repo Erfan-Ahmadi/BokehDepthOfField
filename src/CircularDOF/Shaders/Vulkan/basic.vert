@@ -1,19 +1,25 @@
 #version 450 core
 
-layout(location = 0) in vec4 Position;
-layout(location = 1) in vec4 Normal;
-layout(location = 2) in vec2 TexCoords;
+layout(location = 0) in vec3 InPosition;
+layout(location = 1) in vec3 InNormal;
+layout(location = 2) in vec2 InUV;
 
-layout(set = 0, binding = 0) uniform UniformData
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass 
 {
-	mat4 view;
-	mat4 proj;
+	uniform mat4		projView;
 };
 
-layout(location = 0) out vec2 outTexCoords;
+layout(std140, UPDATE_FREQ_NONE, binding = 0) uniform cbPerProp 
+{
+	uniform mat4		world;
+};
+
+layout(location = 0) out vec3 OutNormal;
+layout(location = 1) out vec2 OutUV;
 
 void main()
 {
-	gl_Position = proj * view * Position;
-	outTexCoords = TexCoords;
+	gl_Position = projView * world * vec4(InPosition.xyz, 1.0f);
+	OutNormal = mat3(world) * InNormal.xyz;
+	OutUV = InUV;
 }
