@@ -71,7 +71,7 @@ cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
 	float filterRadius;
 };
 
-SamplerState	uSampler0		: register(s0);
+SamplerState	samplerLinear		: register(s0);
 Texture2D		Texture			: register(t0, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureR		: register(t1, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureG		: register(t2, UPDATE_FREQ_PER_FRAME);
@@ -97,9 +97,9 @@ float4 main(VSOutput input) : SV_TARGET
     {
 		int index = i - KERNEL_RADIUS;
         float2 coords = input.UV + step * float2(0.0, float(index)) * filterRadius;
-        float4 imageTexelR = TextureR.Sample(uSampler0, coords);  
-        float4 imageTexelG = TextureG.Sample(uSampler0, coords);  
-        float4 imageTexelB = TextureB.Sample(uSampler0, coords);  
+        float4 imageTexelR = TextureR.Sample(samplerLinear, coords);  
+        float4 imageTexelG = TextureG.Sample(samplerLinear, coords);  
+        float4 imageTexelB = TextureB.Sample(samplerLinear, coords);  
         
         float2 c0 = Kernel0_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
         float2 c1 = Kernel1_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;

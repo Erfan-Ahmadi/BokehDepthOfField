@@ -636,7 +636,7 @@ class SinglePassBokeh: public IApp
 	{
 		// HDR
 		{
-			const char* samplerNames = { "uSampler0 " };
+			const char* samplerNames = { "samplerLinear " };
 			{
 				Shader* shaders[1] = { pShaderBasic };
 				RootSignatureDesc rootDesc = {};

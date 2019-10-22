@@ -66,7 +66,7 @@ struct VSOutput
     float2 UV		: TEXCOORD0;
 };
 
-SamplerState	uSampler0		: register(s0);
+SamplerState	samplerLinear	: register(s0);
 Texture2D		Texture			: register(t0, UPDATE_FREQ_PER_FRAME);
 
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
@@ -101,7 +101,7 @@ PSOut main(VSOutput input) : SV_TARGET
 		float2 c0 = Kernel0_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
 		float2 c1 = Kernel1_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
 
-		float3 texel = Texture.Sample(uSampler0, coords).rgb;
+		float3 texel = Texture.Sample(samplerLinear, coords).rgb;
 
 		valR += float4(texel.r * c0, texel.r * c1);
 		valG += float4(texel.g * c0, texel.g * c1);

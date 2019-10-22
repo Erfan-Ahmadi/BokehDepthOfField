@@ -22,6 +22,14 @@ const uint32_t gImageCount = 3;
 bool bToggleMicroProfiler = false;
 bool bPrevToggleMicroProfiler = false;
 
+constexpr float gNear		= 0.1f;
+constexpr float gFar		= 3000.0f;
+constexpr float gFocalPlane	= 1500.0f;
+constexpr float gFocalRange	= 500.0f;
+
+static_assert(gFocalPlane + gFocalRange <= gFar, "");
+static_assert(gFocalPlane - gFocalRange >= gNear, "");
+
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
 //--------------------------------------------------------------------------------------------
@@ -55,12 +63,18 @@ struct cbPerObj
 
 struct cbPerPass
 {
-	mat4 mProjectView;
+	mat4 mProjectMat;
+	mat4 mViewMat;
 };
 
 struct UniformDataDOF
 {
-	float filterRadius = 1.0f;
+	float filterRadius	= 1.0f;
+	float nb			= gNear;
+	float ne			= 0.0f;
+	float fb			= 0.0f;
+	float fe			= gFar;
+	float3 pad			= {};
 };
 
 //--------------------------------------------------------------------------------------------
@@ -73,6 +87,7 @@ Queue* pGraphicsQueue															= NULL;
 
 CmdPool* pCmdPool																= NULL;
 Cmd** ppCmdsHDR 																= NULL;
+Cmd** ppCmdsCoC 																= NULL;
 Cmd** ppCmdsHorizontalDof 														= NULL;
 Cmd** ppCmdsComposite															= NULL;
 
@@ -84,26 +99,32 @@ Semaphore* pImageAcquiredSemaphore 												= NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 
 Pipeline* pPipelineScene 														= NULL;
+Pipeline* pPipelineCoC 															= NULL;
 Pipeline* pPipelineHorizontalDOF 												= NULL;
 Pipeline* pPipelineComposite 													= NULL;
 
 Shader* pShaderBasic 															= NULL;
+Shader* pShaderGenCoc 															= NULL;
 Shader* pShaderHorizontalDof 													= NULL;
 Shader* pShaderComposite 														= NULL;
 
 DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
+DescriptorSet* pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 
 RootSignature* pRootSignatureScene 												= NULL;
+RootSignature* pRootSignatureCoC 												= NULL;
 RootSignature* pRootSignatureHorizontalPass										= NULL;
 RootSignature* pRootSignatureCompositePass 										= NULL;
 
 Sampler* pSamplerLinear;
+Sampler* pSamplerPoint;
 
 RenderTarget* pDepthBuffer;
 
 RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetCoC[gImageCount]										= { NULL };
 RenderTarget* pRenderTargetR[gImageCount]										= { NULL };
 RenderTarget* pRenderTargetG[gImageCount]										= { NULL };
 RenderTarget* pRenderTargetB[gImageCount]										= { NULL };
@@ -126,13 +147,13 @@ SceneData			gSponzaSceneData;
 
 #define TOTAL_SPONZA_IMGS 84
 
-Texture * pMaterialTexturesSponza[TOTAL_SPONZA_IMGS]							= { NULL };
+Texture* pMaterialTexturesSponza[TOTAL_SPONZA_IMGS]							= { NULL };
 
 eastl::vector<int>	gSponzaTextureIndexforMaterial;
 
 const char* gModel_Sponza_File = "sponza.obj";
 
-const char* pMaterialImageFileNames[] = {
+const char* pMaterialImageFileNames [] = {
 	"SponzaPBR_Textures/ao",
 	"SponzaPBR_Textures/ao",
 	"SponzaPBR_Textures/ao",
@@ -279,7 +300,7 @@ GpuProfiler* pGpuProfiler						= NULL;
 ICameraController* pCameraController			= NULL;
 TextDrawDesc gFrameTimeDraw						= TextDrawDesc(0, 0xff00ffff, 18);
 
-const char* pszBases[FSR_Count] = 
+const char* pszBases[FSR_Count] =
 {
 	"../../../../src/Shaders/bin",													// FSR_BinShaders
 	"../../../../src/CircularDOF/",													// FSR_SrcShaders
@@ -294,9 +315,9 @@ const char* pszBases[FSR_Count] =
 	"../../../../../The-Forge/Middleware_3/UI/",									// FSR_MIDDLEWARE_UI
 };
 
-class CircularDOF : public IApp
+class CircularDOF: public IApp
 {
-public:
+	public:
 	CircularDOF() {}
 
 	bool Init()
@@ -359,9 +380,9 @@ public:
 		pGui->AddWidget(SliderFloatWidget("Filter Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
-		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
-		vec3                   camPos{ 100.0f, 25.0f, 0.0f };
-		vec3                   lookAt{ 0 };
+		CameraMotionParameters cmp { 200.0f, 250.0f, 300.0f };
+		vec3                   camPos { 100.0f, 25.0f, 0.0f };
+		vec3                   lookAt { 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
@@ -391,7 +412,7 @@ public:
 			}, this
 		};
 		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
 			if (!bToggleMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
@@ -504,14 +525,15 @@ public:
 			(float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
 		mat4 projMat =
-			mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 6000.0f);
+			mat4::perspective(horizontal_fov, aspectInverse, gNear, gFar);
 
-		gUniformDataScene.mProjectView = projMat * viewMat;
-
-		// Update Instance Data
-		gSponzaSceneData.WorldMatrix = mat4::identity();
+		gUniformDataScene.mProjectMat = projMat;
+		gUniformDataScene.mViewMat =  viewMat;
 
 		viewMat.setTranslation(vec3(0));
+
+		gUniformDataDOF.fb = gFocalPlane + gFocalRange;
+		gUniformDataDOF.ne = gFocalPlane - gFocalRange;
 
 		if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
 		{
@@ -562,7 +584,9 @@ public:
 		loadActions.mClearDepth.stencil = 0;
 
 		RenderTarget* pSwapChainRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+
 		RenderTarget* pHdrRenderTarget = pRenderTargetHDR[gFrameIndex];
+		RenderTarget* pGenCocRenderTarget = pRenderTargetCoC[gFrameIndex];
 		RenderTarget* pHorizontalRenderTargets[3] =
 		{
 			pRenderTargetR[gFrameIndex],
@@ -614,7 +638,7 @@ public:
 					cmdBindDescriptorSet(cmd, 0, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_NONE]);
 					cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 
-					Buffer* pVertexBuffers[] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
+					Buffer* pVertexBuffers [] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
 					cmdBindVertexBuffer(cmd, 3, pVertexBuffers, NULL);
 
 					cmdBindIndexBuffer(cmd, mesh->pIndicesStream, 0);
@@ -623,6 +647,39 @@ public:
 				}
 			}
 
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsCoC[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Generate CoC Pass", true);
+
+			TextureBarrier textureBarriers[2] =
+			{
+				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+
+			loadActions = {};
+			cmdBindRenderTargets(cmd, 1, &pGenCocRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pGenCocRenderTarget->mDesc.mWidth,
+				(float)pGenCocRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pGenCocRenderTarget->mDesc.mWidth,
+				pGenCocRenderTarget->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineCoC);
+			{
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		}
 		endCmd(cmd);
@@ -711,12 +768,12 @@ public:
 
 			gAppUI.DrawText(cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
-#if !defined(__ANDROID__)
+			#if !defined(__ANDROID__)
 			gAppUI.DrawText(
 				cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 				&gFrameTimeDraw);
 			gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-#endif
+			#endif
 
 			cmdDrawProfiler();
 
@@ -805,9 +862,21 @@ public:
 								   ADDRESS_MODE_REPEAT,
 								   ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &samplerDesc, &pSamplerLinear);
+
+		samplerDesc = { FILTER_NEAREST,
+						FILTER_NEAREST,
+						MIPMAP_MODE_NEAREST,
+						ADDRESS_MODE_REPEAT,
+						ADDRESS_MODE_REPEAT,
+						ADDRESS_MODE_REPEAT };
+		addSampler(pRenderer, &samplerDesc, &pSamplerPoint);
 	}
 
-	void RemoveSamplers() { removeSampler(pRenderer, pSamplerLinear); }
+	void RemoveSamplers()
+	{
+		removeSampler(pRenderer, pSamplerLinear);
+		removeSampler(pRenderer, pSamplerPoint);
+	}
 
 	// Sync Objects
 
@@ -888,9 +957,21 @@ public:
 		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "basic.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
+
+		ShaderMacro    ShaderMacroCoC[2] = 
+		{ 
+			{ "zNear", eastl::string().sprintf("%f", gNear) },
+			{ "zFar", eastl::string().sprintf("%f", gFar) }
+		};
+
+		shaderDesc.mStages[0] = { "genCoc.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "genCoc.frag", ShaderMacroCoC, 2, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderGenCoc);
+
 		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "horizontalDof.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderHorizontalDof);
+
 		shaderDesc.mStages[0] = { "composite.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "composite.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderComposite);
@@ -899,6 +980,7 @@ public:
 	void RemoveShaders()
 	{
 		removeShader(pRenderer, pShaderBasic);
+		removeShader(pRenderer, pShaderGenCoc);
 		removeShader(pRenderer, pShaderHorizontalDof);
 		removeShader(pRenderer, pShaderComposite);
 	}
@@ -909,8 +991,8 @@ public:
 	{
 		// HDR
 		{
-			const char* pStaticSamplerNames[] = { "uSampler0" };
-			Sampler* pStaticSamplers[] = { pSamplerLinear };
+			const char* pStaticSamplerNames [] = { "samplerLinear" };
+			Sampler* pStaticSamplers [] = { pSamplerLinear };
 			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[1] = { pShaderBasic };
@@ -920,9 +1002,9 @@ public:
 				rootDesc.mStaticSamplerCount = numStaticSamplers;
 				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 				rootDesc.ppStaticSamplers = pStaticSamplers;
-#ifndef TARGET_IOS
+				#ifndef TARGET_IOS
 				rootDesc.mMaxBindlessTextures = TOTAL_SPONZA_IMGS;
-#endif
+				#endif
 
 				addRootSignature(pRenderer, &rootDesc, &pRootSignatureScene);
 			}
@@ -933,17 +1015,41 @@ public:
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsScene[1]);
 		}
 
+		// CoC
+		{
+			const char* pStaticSamplerNames [] = { "samplerLinear" };
+			Sampler* pStaticSamplers [] = { pSamplerLinear };
+			uint        numStaticSamplers = 1;
+			{
+				Shader* shaders[1] = { pShaderGenCoc };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureCoC);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureCoC, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsCoc[0]);
+			setDesc = { pRootSignatureCoC, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsCoc[1]);
+		}
+
 		// HorizontalDof
 		{
-			const char* samplerNames = { "uSampler0 " };
+			const char* pStaticSamplerNames [] = { "samplerLinear" };
+			Sampler* pStaticSamplers [] = { pSamplerLinear };
+			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[1] = { pShaderHorizontalDof };
 				RootSignatureDesc rootDesc = {};
 				rootDesc.mShaderCount = 1;
 				rootDesc.ppShaders = shaders;
-				rootDesc.mStaticSamplerCount = 1;
-				rootDesc.ppStaticSamplerNames = &samplerNames;
-				rootDesc.ppStaticSamplers = &pSamplerLinear;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
 				addRootSignature(pRenderer, &rootDesc, &pRootSignatureHorizontalPass);
 			}
 
@@ -955,15 +1061,17 @@ public:
 
 		// Composite
 		{
-			const char* samplerNames = { "uSampler0 " };
+			const char* pStaticSamplerNames [] = { "samplerLinear" };
+			Sampler* pStaticSamplers [] = { pSamplerLinear };
+			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[1] = { pShaderComposite };
 				RootSignatureDesc rootDesc = {};
 				rootDesc.mShaderCount = 1;
 				rootDesc.ppShaders = shaders;
-				rootDesc.mStaticSamplerCount = 1;
-				rootDesc.ppStaticSamplerNames = &samplerNames;
-				rootDesc.ppStaticSamplers = &pSamplerLinear;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
 				addRootSignature(pRenderer, &rootDesc, &pRootSignatureCompositePass);
 			}
 
@@ -977,12 +1085,16 @@ public:
 	void RemoveDescriptorSets()
 	{
 		removeRootSignature(pRenderer, pRootSignatureScene);
+		removeRootSignature(pRenderer, pRootSignatureCoC);
 		removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
 		removeRootSignature(pRenderer, pRootSignatureCompositePass);
+
 		for (int i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		{
 			if (pDescriptorSetsScene[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsScene[i]);
+			if (pDescriptorSetsCompositePass[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsCoc[i]);
 			if (pDescriptorSetsHorizontalPass[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
 			if (pDescriptorSetsCompositePass[i])
@@ -997,12 +1109,12 @@ public:
 			DescriptorData params[2] = {};
 			params[0].pName = "cbPerProp";
 			params[0].ppBuffers = &gSponzaSceneData.pConstantBuffer;
-#ifndef TARGET_IOS
+			#ifndef TARGET_IOS
 			params[1].pName = "textureMaps";
 			params[1].ppTextures = pMaterialTexturesSponza;
 			params[1].mCount = TOTAL_SPONZA_IMGS;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[0], 2, params);
-#else
+			#else
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[0], 1, params);
 
 			for (uint32_t i = 0; i < (uint32_t)SponzaProp.MeshBatches.size(); ++i)
@@ -1018,13 +1130,13 @@ public:
 					params[0].pName = pTextureName[0];    //Albedo texture name
 					uint textureId = gSponzaTextureIndexforMaterial[materialID];
 					params[0].ppTextures = &pMaterialTextures[textureId];
-		}
+				}
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
 				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2], 1, params);
-	}
-#endif
+			}
+			#endif
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -1033,7 +1145,24 @@ public:
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
 				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
 			}
-}
+		}
+
+		// CoC
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[3] = {};
+				params[0].pName = "DepthTexture";
+				params[0].ppTextures = &pDepthBuffer->pTexture;
+				params[1].pName = "UniformDOF";
+				params[1].ppBuffers = &pUniformBuffersDOF[i];
+				params[2].pName = "cbPerPass";
+				params[2].ppBuffers = &pUniformBuffersProjView[i];
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2,
+					params);
+			}
+		}
 
 		// HorizontalDof
 		{
@@ -1107,6 +1236,22 @@ public:
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetHDR[i]);
 		}
 
+		// Circle of Confusion Render Target
+		{
+			RenderTargetDesc rtDesc = {};
+			rtDesc.mArraySize = 1;
+			rtDesc.mClearValue = clearVal;
+			rtDesc.mFormat = TinyImageFormat_R32G32_SFLOAT;
+			rtDesc.mDepth = 1;
+			rtDesc.mWidth = mSettings.mWidth;
+			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mSampleCount = SAMPLE_COUNT_1;
+			rtDesc.mSampleQuality = 0;
+
+			for (int i = 0; i < gImageCount; ++i)
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetCoC[i]);
+		}
+
 		// R, G, B
 		{
 			RenderTargetDesc rtDesc = {};
@@ -1136,6 +1281,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			removeRenderTarget(pRenderer, pRenderTargetHDR[i]);
+			removeRenderTarget(pRenderer, pRenderTargetCoC[i]);
 			removeRenderTarget(pRenderer, pRenderTargetR[i]);
 			removeRenderTarget(pRenderer, pRenderTargetG[i]);
 			removeRenderTarget(pRenderer, pRenderTargetB[i]);
@@ -1146,7 +1292,7 @@ public:
 
 	void AddPipelines()
 	{
-		// HDR Scene Pipeline
+		// HDR Scene
 		{
 			VertexLayout vertexLayout = {};
 			vertexLayout.mAttribCount = 3;
@@ -1176,15 +1322,34 @@ public:
 			pipelineSettings.mRenderTargetCount = 1;
 			pipelineSettings.pDepthState = pDepthDefault;
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
-			pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-			pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-			pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+			pipelineSettings.pColorFormats = &pRenderTargetHDR[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pRenderTargetHDR[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetHDR[0]->mDesc.mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignatureScene;
 			pipelineSettings.pShaderProgram = pShaderBasic;
 			pipelineSettings.pVertexLayout = &vertexLayout;
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
 			addPipeline(pRenderer, &desc, &pPipelineScene);
+		}
+
+		// CoC Gen
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = pDepthNone;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+			pipelineSettings.pColorFormats = &pRenderTargetCoC[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pRenderTargetCoC[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetCoC[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureCoC;
+			pipelineSettings.pShaderProgram = pShaderGenCoc;
+			pipelineSettings.pRasterizerState = pRasterDefault;
+
+			addPipeline(pRenderer, &desc, &pPipelineCoC);
 		}
 
 		// Horizontal
@@ -1236,6 +1401,7 @@ public:
 	void RemovePipelines()
 	{
 		removePipeline(pRenderer, pPipelineScene);
+		removePipeline(pRenderer, pPipelineCoC);
 		removePipeline(pRenderer, pPipelineHorizontalDOF);
 		removePipeline(pRenderer, pPipelineComposite);
 	}
@@ -1246,6 +1412,7 @@ public:
 	{
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHDR);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsCoC);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
@@ -1253,6 +1420,7 @@ public:
 	void RemoveCmds()
 	{
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHDR);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsCoC);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);
@@ -1543,6 +1711,9 @@ public:
 				addResource(&desc);
 			}
 		}
+
+		// Update Instance Data
+		gSponzaSceneData.WorldMatrix = mat4::identity() * mat4::scale(Vector3(1.0f));
 
 		//set constant buffer for sponza
 		{

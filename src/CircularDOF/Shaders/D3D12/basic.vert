@@ -7,7 +7,8 @@ struct VsIn
 
 cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME) 
 {
-	float4x4	projView;
+	float4x4	proj;
+	float4x4	view;
 }
 
 cbuffer cbPerProp : register(b1)
@@ -26,6 +27,8 @@ struct PsIn
 PsIn main(VsIn In)
 {
 	PsIn Out;
+
+	float4x4 projView = mul(proj, view);
 
 	Out.position = mul(projView, mul(world, float4(In.position.xyz, 1.0f)));
 	Out.normal = mul((float3x3)world, In.normal.xyz).xyz;
