@@ -24,11 +24,9 @@ bool bPrevToggleMicroProfiler = false;
 
 constexpr float gNear		= 0.1f;
 constexpr float gFar		= 3000.0f;
-constexpr float gFocalPlane	= 1500.0f;
-constexpr float gFocalRange	= 500.0f;
 
-static_assert(gFocalPlane + gFocalRange <= gFar, "");
-static_assert(gFocalPlane - gFocalRange >= gNear, "");
+static float gFocalPlane	= 1500.0f;
+static float gFocalRange	= 500.0f;
 
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
@@ -377,6 +375,8 @@ class CircularDOF: public IApp
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pGui->AddWidget(SliderFloatWidget("Focal Plane", &gFocalPlane, gNear, gFar, 10.0, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Range", &gFocalRange, 0, 500, 10.0f, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Filter Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
