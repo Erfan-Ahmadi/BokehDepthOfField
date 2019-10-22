@@ -57,6 +57,12 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.vert">
       <Filter>Shaders\D3D12</Filter>
     </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\CircularDOF\CircularDOF.cpp">
