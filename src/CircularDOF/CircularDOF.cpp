@@ -133,9 +133,9 @@ RenderTarget* pRenderTargetCoCDowres[gImageCount]								= { NULL };
 RenderTarget* pRenderTargetFar[gImageCount]										= { NULL };
 RenderTarget* pRenderTargetNear[gImageCount]									= { NULL };
 
-RenderTarget* pRenderTargetR[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetG[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetB[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetFarR[gImageCount]									= { NULL };
+RenderTarget* pRenderTargetFarG[gImageCount]									= { NULL };
+RenderTarget* pRenderTargetFarB[gImageCount]									= { NULL };
 
 RasterizerState* pRasterDefault 												= NULL;
 
@@ -386,7 +386,7 @@ class CircularDOF: public IApp
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 		pGui->AddWidget(SliderFloatWidget("Focal Plane", &gFocalPlane, gNear, gFar, 10.0, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Focal Range", &gFocalRange, 0, 500, 10.0f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Range", &gFocalRange, 0, 1000, 10.0f, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Filter Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
@@ -605,11 +605,11 @@ class CircularDOF: public IApp
 			pRenderTargetFar[gFrameIndex],
 		};
 
-		RenderTarget* pHorizontalRenderTargets[3] =
+		RenderTarget* pHorizontalFarRenderTargets[3] =
 		{
-			pRenderTargetR[gFrameIndex],
-			pRenderTargetG[gFrameIndex],
-			pRenderTargetB[gFrameIndex],
+			pRenderTargetFarR[gFrameIndex],
+			pRenderTargetFarG[gFrameIndex],
+			pRenderTargetFarB[gFrameIndex],
 		};
 
 		Cmd* cmd = ppCmdsHDR[gFrameIndex];
@@ -742,27 +742,28 @@ class CircularDOF: public IApp
 		cmd = ppCmdsHorizontalDof[gFrameIndex];
 		beginCmd(cmd);
 		{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Horizontal Blur Pass", true);
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Far Horizontal Blur Pass", true);
 
-			TextureBarrier textureBarriers[4] =
+			TextureBarrier textureBarriers[5] =
 			{
-				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+				{ pHorizontalFarRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalFarRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalFarRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // CoC DownRes
+				{ pDownresRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE } // Far DownRes
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
 
 			loadActions = {};
 
-			cmdBindRenderTargets(cmd, 3, pHorizontalRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 3, pHorizontalFarRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pHorizontalRenderTargets[0]->mDesc.mWidth,
-				(float)pHorizontalRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pHorizontalRenderTargets[0]->mDesc.mWidth,
-				pHorizontalRenderTargets[0]->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pHorizontalFarRenderTargets[0]->mDesc.mWidth,
+				(float)pHorizontalFarRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pHorizontalFarRenderTargets[0]->mDesc.mWidth,
+				pHorizontalFarRenderTargets[0]->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHorizontalDOF);
 			{
@@ -783,16 +784,17 @@ class CircularDOF: public IApp
 
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
 
-			TextureBarrier textureBarriers[5] =
+			TextureBarrier textureBarriers[6] =
 			{
 				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalFarRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalFarRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalFarRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 6, textureBarriers);
 
 			loadActions = {};
 			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
@@ -1096,7 +1098,7 @@ class CircularDOF: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsCoc[1]);
 		}
 
-		// CoC
+		// Downres
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
 			Sampler* pStaticSamplers [] = { pSamplerLinear, pSamplerPoint };
@@ -1118,11 +1120,11 @@ class CircularDOF: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsDownres[1]);
 		}
 
-		// HorizontalDof
+		// Far Horizontal DoF
 		{
-			const char* pStaticSamplerNames [] = { "samplerLinear" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear };
-			uint        numStaticSamplers = 1;
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinear, pSamplerPoint };
+			uint        numStaticSamplers = 2;
 			{
 				Shader* shaders[1] = { pShaderHorizontalDof };
 				RootSignatureDesc rootDesc = {};
@@ -1142,9 +1144,9 @@ class CircularDOF: public IApp
 
 		// Composite
 		{
-			const char* pStaticSamplerNames [] = { "samplerLinear" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear };
-			uint        numStaticSamplers = 1;
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinear, pSamplerPoint };
+			uint        numStaticSamplers = 2;
 			{
 				Shader* shaders[1] = { pShaderComposite };
 				RootSignatureDesc rootDesc = {};
@@ -1263,15 +1265,15 @@ class CircularDOF: public IApp
 			}
 		}
 
-		// HorizontalDof
+		// 2-Component HorizontalDof (for far field)
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				DescriptorData params[2] = {};
-				params[0].pName = "Texture";
-				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
-				params[1].pName = "UniformDOF";
-				params[1].ppBuffers = &pUniformBuffersDOF[i];
+				params[0].pName = "TextureFar";
+				params[0].ppTextures = &pRenderTargetFar[i]->pTexture;
+				params[1].pName = "TextureCoC";
+				params[1].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
 					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2,
 					params);
@@ -1282,17 +1284,19 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[4] = {};
-				params[0].pName = "UniformDOF";
-				params[0].ppBuffers = &pUniformBuffersDOF[i];
-				params[1].pName = "TextureR";
-				params[1].ppTextures = &pRenderTargetR[i]->pTexture;
-				params[2].pName = "TextureG";
-				params[2].ppTextures = &pRenderTargetG[i]->pTexture;
-				params[3].pName = "TextureB";
-				params[3].ppTextures = &pRenderTargetB[i]->pTexture;
+				DescriptorData params[5] = {};
+				params[0].pName = "TextureCoC";
+				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
+				params[1].pName = "TextureFarR";
+				params[1].ppTextures = &pRenderTargetFarR[i]->pTexture;
+				params[2].pName = "TextureFarG";
+				params[2].ppTextures = &pRenderTargetFarG[i]->pTexture;
+				params[3].pName = "TextureFarB";
+				params[3].ppTextures = &pRenderTargetFarB[i]->pTexture;
+				params[4].pName = "TextureColor";
+				params[4].ppTextures = &pRenderTargetHDR[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 4,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 5,
 					params);
 			}
 		}
@@ -1393,16 +1397,16 @@ class CircularDOF: public IApp
 			rtDesc.mClearValue = clearVal;
 			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT; //TinyImageFormat_R8G8B8A8_UNORM
 			rtDesc.mDepth = 1;
-			rtDesc.mWidth = mSettings.mWidth;
-			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mWidth = pRenderTargetFar[0]->mDesc.mWidth;
+			rtDesc.mHeight =  pRenderTargetFar[0]->mDesc.mHeight;
 			rtDesc.mSampleCount = SAMPLE_COUNT_1;
 			rtDesc.mSampleQuality = 0;
 
 			for (int i = 0; i < gImageCount; ++i)
 			{
-				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetR[i]);
-				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetG[i]);
-				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetB[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFarR[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFarG[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFarB[i]);
 			}
 		}
 
@@ -1419,9 +1423,9 @@ class CircularDOF: public IApp
 			removeRenderTarget(pRenderer, pRenderTargetCoCDowres[i]);
 			removeRenderTarget(pRenderer, pRenderTargetNear[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFar[i]);
-			removeRenderTarget(pRenderer, pRenderTargetR[i]);
-			removeRenderTarget(pRenderer, pRenderTargetG[i]);
-			removeRenderTarget(pRenderer, pRenderTargetB[i]);
+			removeRenderTarget(pRenderer, pRenderTargetFarR[i]);
+			removeRenderTarget(pRenderer, pRenderTargetFarG[i]);
+			removeRenderTarget(pRenderer, pRenderTargetFarB[i]);
 		}
 	}
 
@@ -1515,13 +1519,13 @@ class CircularDOF: public IApp
 			addPipeline(pRenderer, &desc, &pPipelineDownres);
 		}
 
-		// Horizontal
+		// 2-Component Horizontal Filter
 		{
 			TinyImageFormat formats[3] =
 			{
-				pRenderTargetR[0]->mDesc.mFormat,
-				pRenderTargetG[0]->mDesc.mFormat,
-				pRenderTargetB[0]->mDesc.mFormat
+				pRenderTargetFarR[0]->mDesc.mFormat,
+				pRenderTargetFarG[0]->mDesc.mFormat,
+				pRenderTargetFarB[0]->mDesc.mFormat
 			};
 
 			PipelineDesc desc = {};
@@ -1532,8 +1536,8 @@ class CircularDOF: public IApp
 			pipelineSettings.pDepthState = pDepthNone;
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 			pipelineSettings.pColorFormats = formats;
-			pipelineSettings.mSampleCount = pRenderTargetR[0]->mDesc.mSampleCount;
-			pipelineSettings.mSampleQuality = pRenderTargetR[0]->mDesc.mSampleQuality;
+			pipelineSettings.mSampleCount = pRenderTargetFarR[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetFarR[0]->mDesc.mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignatureHorizontalPass;
 			pipelineSettings.pShaderProgram = pShaderHorizontalDof;
 			pipelineSettings.pRasterizerState = pRasterDefault;

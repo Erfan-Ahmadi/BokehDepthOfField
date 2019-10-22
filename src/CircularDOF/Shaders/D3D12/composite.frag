@@ -66,16 +66,13 @@ struct VSOutput
     float2 UV		: TEXCOORD0;
 };
 
-cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
-{
-	float filterRadius;
-};
-
-SamplerState	samplerLinear		: register(s0);
-Texture2D		Texture			: register(t0, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureR		: register(t1, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureG		: register(t2, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureB		: register(t3, UPDATE_FREQ_PER_FRAME);
+SamplerState	samplerLinear	: register(s0);
+SamplerState	samplerPoint	: register(s1);
+Texture2D		TextureCoC		: register(t0, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureFarR		: register(t1, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureFarG		: register(t2, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureFarB		: register(t3, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureColor	: register(t4, UPDATE_FREQ_PER_FRAME);
 
 float2 multComplex(float2 p, float2 q)
 {
@@ -85,21 +82,27 @@ float2 multComplex(float2 p, float2 q)
 float4 main(VSOutput input) : SV_TARGET
 {	
 	uint w, h;
-	TextureR.GetDimensions(w, h);
+	TextureFarR.GetDimensions(w, h);
 	float2 step = 1.0f / float2(w, h);
-	Texture.GetDimensions(w, h);
 	
     float4 valR = float4(0, 0, 0, 0);
     float4 valG = float4(0, 0, 0, 0);
     float4 valB = float4(0, 0, 0, 0);
+	
+	float filterRadiusFar = TextureCoC.Sample(samplerPoint, input.UV).g;
+	
+	if(filterRadiusFar == 0)
+	{
+		return TextureColor.Sample(samplerPoint, input.UV);
+	}
 
 	for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
     {
 		int index = i - KERNEL_RADIUS;
-        float2 coords = input.UV + step * float2(0.0, float(index)) * filterRadius;
-        float4 imageTexelR = TextureR.Sample(samplerLinear, coords);  
-        float4 imageTexelG = TextureG.Sample(samplerLinear, coords);  
-        float4 imageTexelB = TextureB.Sample(samplerLinear, coords);  
+        float2 coords = input.UV + step * float2(0.0, float(index)) * filterRadiusFar;
+        float4 imageTexelR = TextureFarR.Sample(samplerLinear, coords);  
+        float4 imageTexelG = TextureFarG.Sample(samplerLinear, coords);  
+        float4 imageTexelB = TextureFarB.Sample(samplerLinear, coords);  
         
         float2 c0 = Kernel0_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
         float2 c1 = Kernel1_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;

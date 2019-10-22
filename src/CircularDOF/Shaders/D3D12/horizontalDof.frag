@@ -67,12 +67,9 @@ struct VSOutput
 };
 
 SamplerState	samplerLinear	: register(s0);
-Texture2D		Texture			: register(t0, UPDATE_FREQ_PER_FRAME);
-
-cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
-{
-	float filterRadius;
-};
+SamplerState	samplerPoint	: register(s1);
+Texture2D		TextureFar		: register(t0, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureCoC		: register(t1, UPDATE_FREQ_PER_FRAME);
 
 struct PSOut
 {
@@ -86,22 +83,33 @@ PSOut main(VSOutput input) : SV_TARGET
 	PSOut output;
 
 	uint w, h;
-	Texture.GetDimensions(w, h);
+	TextureFar.GetDimensions(w, h);
 	float2 step = 1.0f / float2(w, h);
 	
     float4 valR = float4(0,0,0,0);
     float4 valG = float4(0,0,0,0);
     float4 valB = float4(0,0,0,0);
 
+	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
+	float filterRadiusFar = cocValue.g * 4.0f;
+
+	if(filterRadiusFar == 0)
+	{
+		output.TextureR = valR;
+		output.TextureG = valG;
+		output.TextureB = valB;
+		return output;
+	}
+
 	for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
 	{
 		int index = i - KERNEL_RADIUS;
-		float2 coords = input.UV + step * float2(float(index), 0) * filterRadius;
+		float2 coords = input.UV + step * float2(float(index), 0) * filterRadiusFar;
 
 		float2 c0 = Kernel0_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
 		float2 c1 = Kernel1_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
 
-		float3 texel = Texture.Sample(samplerLinear, coords).rgb;
+		float3 texel = TextureFar.Sample(samplerLinear, coords).rgb / cocValue.g;
 
 		valR += float4(texel.r * c0, texel.r * c1);
 		valG += float4(texel.g * c0, texel.g * c1);
