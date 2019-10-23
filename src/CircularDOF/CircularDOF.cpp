@@ -28,7 +28,7 @@ constexpr float gFar				= 3000.0f;
 static float gFocalPlane			= 380;
 static float gFocalRange			= 160;
 
-constexpr size_t gPointLights		= 1;
+constexpr size_t gPointLights		= 3;
 constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
@@ -88,11 +88,11 @@ struct PointLight
 	alignas(16) float3 specular;
 	alignas(16) float3 attenuationParams;
 	#elif DIRECT3D12
-	float3 position;
-	float3 ambient;
-	float3 diffuse;
-	float3 specular;
-	float3 attenuationParams;
+	alignas(16) float3 position;
+	alignas(16) float3 ambient;
+	alignas(16) float3 diffuse;
+	alignas(16) float3 specular;
+	alignas(16) float3 attenuationParams;
 	float _pad0;
 	#endif
 };
@@ -550,6 +550,15 @@ class CircularDOF: public IApp
 
 		PrepareDescriptorSets();
 
+		for (int i = 0; i < gPointLights; ++i)
+		{
+			pointLights[i].attenuationParams = float3 { 1.0f, 0.007f, 0.0002f };
+			pointLights[i].ambient = float3 { 0.015f, 0.015f, 0.015f };
+			pointLights[i].position = float3 { 1000.0f - 400.0f * i, (rand() % 400) * 1.0f,  (rand() % 300) - 150.0f };
+			pointLights[i].diffuse = float3 { (rand() % 255) / 255.0f, (rand() % 255) / 255.0f, (rand() % 255) / 255.0f };
+			pointLights[i].specular = pointLights[i].diffuse;
+		}
+
 		return true;
 	}
 
@@ -601,11 +610,6 @@ class CircularDOF: public IApp
 
 		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
 
-		pointLights[0].position = float3 { 0.0f + 4 * sin(2 * currentLightTime), 1.0f, 6.0f + 4 * cos(2 * currentLightTime) };
-		pointLights[0].ambient = float3 { 0.01f, 0.01f, 0.01f };
-		pointLights[0].diffuse = float3 { 1.0f, 2.0f, 2.0f };
-		pointLights[0].specular = float3 { 1.0f, 3.0f, 3.0f };
-		pointLights[0].attenuationParams = float3 { 1.0f, 0.0014f, 0.000007 };
 		lightData.numPointLights = gPointLights;
 
 		for (int i = 0; i < gPointLights; ++i)
@@ -655,6 +659,11 @@ class CircularDOF: public IApp
 
 		BufferUpdateDesc pointLightBuffUpdate = { pPointLightsBuffer, &pointLights };
 		updateResource(&pointLightBuffUpdate);
+
+		BufferUpdateDesc instanceDataUpdate = { pInstancePositionBuffer, &lightInstancedata.position };
+		updateResource(&instanceDataUpdate);
+		instanceDataUpdate = { pInstanceColorBuffer, &lightInstancedata.color };
+		updateResource(&instanceDataUpdate);
 
 		// Load Actions
 		LoadActionsDesc loadActions = {};
@@ -709,6 +718,9 @@ class CircularDOF: public IApp
 			cmdSetScissor(cmd, 0, 0, pHdrRenderTarget->mDesc.mWidth,
 				pHdrRenderTarget->mDesc.mHeight);
 
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_NONE]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+
 			cmdBindPipeline(cmd, pPipelineScene);
 			{
 				// Draw sponza
@@ -728,9 +740,6 @@ class CircularDOF: public IApp
 
 					cmdBindPushConstants(cmd, pRootSignatureScene, "cbTextureRootConstants", &data);
 
-					cmdBindDescriptorSet(cmd, 0, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_NONE]);
-					cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
-
 					Buffer* pVertexBuffers [] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
 					cmdBindVertexBuffer(cmd, 3, pVertexBuffers, NULL);
 
@@ -738,6 +747,14 @@ class CircularDOF: public IApp
 
 					cmdDrawIndexed(cmd, mesh->mCountIndices, 0, 0);
 				}
+			}
+
+			cmdBindPipeline(cmd, pPipelineLight);
+			{
+				Buffer* pVertexBuffers [] = { gLightMesh->pPositionStream, pInstancePositionBuffer, pInstanceColorBuffer };
+				cmdBindVertexBuffer(cmd, 3, pVertexBuffers, NULL);
+				cmdBindIndexBuffer(cmd, gLightMesh->pIndicesStream, 0);
+				cmdDrawIndexedInstanced(cmd, gLightMesh->mCountIndices, 0, gPointLights, 0, 0);
 			}
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -1091,13 +1108,10 @@ class CircularDOF: public IApp
 		// PointLights Structured Buffer
 		{
 			BufferLoadDesc bufferDesc = {};
-			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
-			bufferDesc.mDesc.mFirstElement = 0;
-			bufferDesc.mDesc.mElementCount = gPointLights;
-			bufferDesc.mDesc.mStructStride = sizeof(PointLight);
-			bufferDesc.mDesc.mSize = bufferDesc.mDesc.mStructStride * bufferDesc.mDesc.mElementCount;
+			bufferDesc.mDesc.mSize = sizeof(PointLight) * gPointLights;
 			bufferDesc.pData = NULL;
 			bufferDesc.ppBuffer = &pPointLightsBuffer;
 			addResource(&bufferDesc);
@@ -1138,10 +1152,14 @@ class CircularDOF: public IApp
 
 	void AddShaders()
 	{
-		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_SPONZA_IMGS) };
+		ShaderMacro    sceneShaderMacros[2] = 
+		{
+			{ "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_SPONZA_IMGS) },
+			{ "NUM_LIGHTS", eastl::string().sprintf("%i", gPointLights) }
+		};
 		ShaderLoadDesc shaderDesc = {};
 		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "basic.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "basic.frag", sceneShaderMacros, 2, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
 
 		shaderDesc.mStages[0] = { "light.vert", NULL, 0, FSR_SrcShaders };
@@ -1339,11 +1357,11 @@ class CircularDOF: public IApp
 				DescriptorData params[3] = {};
 				params[0].pName = "cbPerPass";
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
-				params[1].pName = "LightData";
-				params[1].ppBuffers = &pLightDataBuffer;
-				params[2].pName = "PointLights";
-				params[2].ppBuffers = &pPointLightsBuffer;
-				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 3, params);
+				params[1].pName = "PointLightsData";
+				params[1].ppBuffers = &pPointLightsBuffer;
+				params[2].pName = "LightData";
+				params[2].ppBuffers = &pLightDataBuffer;
+				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2, params);
 			}
 		}
 
@@ -2061,7 +2079,7 @@ class CircularDOF: public IApp
 		{
 			AssimpImporter::Model sphereModel;
 			{
-				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/geosphere.obj", &sphereModel))
+				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/rubic.obj", &sphereModel))
 				{
 					return false;
 				}

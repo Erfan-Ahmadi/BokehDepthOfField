@@ -4,11 +4,13 @@ struct PointLight
 	float3 ambient;
 	float3 diffuse;
 	float3 specular;
-	
-    float att_constant;
-    float att_linear;
-    float att_quadratic;
+    float3 att_params;
 	float _pad0;
+};
+
+cbuffer PointLightsData : register(b3, UPDATE_FREQ_PER_FRAME)
+{
+	PointLight PointLights[NUM_LIGHTS];
 };
 
 cbuffer cbTextureRootConstants : register(b2) 
@@ -18,7 +20,7 @@ cbuffer cbTextureRootConstants : register(b2)
 
 cbuffer LightData : register(b1, UPDATE_FREQ_PER_FRAME)
 {
-	int numPointLights;
+	float numPointLights;
 	float3 viewPos;
 };
 
@@ -32,12 +34,10 @@ struct PsIn
 
 SamplerState	samplerLinear		: register(s0);
 
-StructuredBuffer <PointLight>	PointLights			: register(t0, UPDATE_FREQ_PER_FRAME);
-
 // material parameters
 Texture2D						textureMaps[]		: register(t3);
 
-float3 calculatePointLight(PointLight pointLight, float3 normal, float3 viewDir, float3 fragPosition, float3 albedo);
+float3 calculatePointLight(PointLight pointLight, float3 normal, float3 fragPosition, float3 albedo);
 
 struct PSOut
 {
@@ -49,21 +49,20 @@ PSOut main(PsIn input) : SV_TARGET
 	PSOut output;
 
 	float3 normal = normalize(input.normal.xyz);
-	float3 viewDir = normalize(viewPos - input.pos.xyz);
 	
-	float3 result;
+	float3 result = float3(0, 0, 0);
 	
 	float3 albedo = textureMaps[albedoMap].Sample(samplerLinear, input.uv).rgb;
 
-	for(int i = 0; i < numPointLights; ++i)
-		result += calculatePointLight(PointLights[i], normal, viewDir, input.pos.xyz, albedo);
+	for(int i = 0; i < NUM_LIGHTS; ++i)
+		result += calculatePointLight(PointLights[i], normal, input.pos.xyz, albedo);
 		
     output.color = float4(result, 1.0f);
 
 	return output;
 }
 
-float3 calculatePointLight(PointLight pointLight, float3 normal, float3 viewDir, float3 fragPosition, float3 albedo)
+float3 calculatePointLight(PointLight pointLight, float3 normal, float3 fragPosition, float3 albedo)
 {
 	float3 difference = pointLight.position - fragPosition;
 
@@ -73,8 +72,7 @@ float3 calculatePointLight(PointLight pointLight, float3 normal, float3 viewDir,
 	// Calc Attenuation
 	float distance = length(difference);
 	float3 dis = float3(1, distance, pow(distance, 2));
-	float3 att = float3(pointLight.att_constant, pointLight.att_linear, pointLight.att_quadratic);
-	float attenuation = 1.0f / dot(dis, att);
+	float attenuation = 1.0f / dot(dis, pointLight.att_params);
 
 	// Ambient
     float3 ambient = pointLight.ambient;
@@ -83,9 +81,5 @@ float3 calculatePointLight(PointLight pointLight, float3 normal, float3 viewDir,
 	float diff = max(dot(lightDir, normal), 0.0f);
 	float3 diffuse = diff * pointLight.diffuse;
 
-	// Specular
-	float spec = pow(max(dot(reflectDir, viewDir), 0.0), 64);
-	float3 specular = spec * pointLight.specular;  
-
-	return attenuation * (ambient + diffuse + specular) * albedo;
+	return attenuation * (ambient + diffuse) * albedo;
 }
