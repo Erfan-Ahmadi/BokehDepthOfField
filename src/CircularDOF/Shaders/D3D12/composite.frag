@@ -59,6 +59,11 @@ static const float4 Kernel1_RealX_ImY_RealZ_ImW[] = {
         float4(/*XY: Non Bracketed*/0.000115,0.009116,/*Bracketed WZ:*/0.000000,0.051147)
 };
 
+cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
+{
+	float	maxRadius;
+	float	blend;
+};
 
 struct VSOutput 
 {
@@ -89,13 +94,15 @@ float4 main(VSOutput input) : SV_TARGET
     float4 valG = float4(0, 0, 0, 0);
     float4 valB = float4(0, 0, 0, 0);
 	
-	float filterRadiusFar = TextureCoC.Sample(samplerPoint, input.UV).g;
+	float4 color = sqrt(TextureColor.Sample(samplerLinear, input.UV));
 	
-	if(filterRadiusFar == 0)
-	{
-		return TextureColor.Sample(samplerPoint, input.UV);
-	}
+	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
+	
+	if(cocValue.g == 0)
+		return color;
 
+	float filterRadiusFar = TextureCoC.Sample(samplerLinear, input.UV).g * maxRadius;
+	
 	for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
     {
 		int index = i - KERNEL_RADIUS;
@@ -120,5 +127,11 @@ float4 main(VSOutput input) : SV_TARGET
     float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY) + dot(valR.zw, Kernel1Weights_RealX_ImY);
     float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY) + dot(valG.zw, Kernel1Weights_RealX_ImY);
     float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY) + dot(valB.zw, Kernel1Weights_RealX_ImY);
-    return float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+    float4 filteredColor = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+	
+	//return lerp(color, filteredColor, saturate((cocValue.g) * blend));
+
+	if(cocValue.g < 0.05f)
+		return color;
+	return lerp(color, filteredColor, blend);
 }

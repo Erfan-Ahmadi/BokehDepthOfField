@@ -68,11 +68,12 @@ struct cbPerPass
 struct UniformDataDOF
 {
 	float filterRadius	= 1.0f;
+	float blend			= 1.0f;
 	float nb			= gNear;
 	float ne			= 0.0f;
 	float fb			= 0.0f;
 	float fe			= gFar;
-	float3 pad			= {};
+	float2 projParams	= {};
 };
 
 //--------------------------------------------------------------------------------------------
@@ -122,6 +123,7 @@ RootSignature* pRootSignatureHorizontalPass										= NULL;
 RootSignature* pRootSignatureCompositePass 										= NULL;
 
 Sampler* pSamplerLinear;
+Sampler* pSamplerLinearClampEdge;
 Sampler* pSamplerPoint;
 
 RenderTarget* pDepthBuffer;
@@ -130,8 +132,8 @@ RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL };
 RenderTarget* pRenderTargetCoC[gImageCount]										= { NULL };
 
 RenderTarget* pRenderTargetCoCDowres[gImageCount]								= { NULL };
+RenderTarget* pRenderTargetColorDownres[gImageCount]							= { NULL };
 RenderTarget* pRenderTargetFar[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetNear[gImageCount]									= { NULL };
 
 RenderTarget* pRenderTargetFarR[gImageCount]									= { NULL };
 RenderTarget* pRenderTargetFarG[gImageCount]									= { NULL };
@@ -326,7 +328,11 @@ const char* pszBases[FSR_Count] =
 class CircularDOF: public IApp
 {
 	public:
-	CircularDOF() {}
+	CircularDOF() 
+	{
+		mSettings.mWidth = 1280;
+		mSettings.mHeight = 720;
+	}
 
 	bool Init()
 	{
@@ -387,10 +393,11 @@ class CircularDOF: public IApp
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 		pGui->AddWidget(SliderFloatWidget("Focal Plane", &gFocalPlane, gNear, gFar, 10.0, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Focal Range", &gFocalRange, 0, 1000, 10.0f, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Filter Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 2, 0.11f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
-		CameraMotionParameters cmp { 200.0f, 250.0f, 300.0f };
+		CameraMotionParameters cmp { 500.0f, 250.0f, 500.0f };
 		vec3                   camPos { 100.0f, 25.0f, 0.0f };
 		vec3                   lookAt { 0 };
 
@@ -545,6 +552,8 @@ class CircularDOF: public IApp
 		gUniformDataDOF.fb = gFocalPlane + gFocalRange;
 		gUniformDataDOF.ne = gFocalPlane - gFocalRange;
 
+		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
+
 		if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
 		{
 			toggleProfiler();
@@ -601,7 +610,7 @@ class CircularDOF: public IApp
 		RenderTarget* pDownresRenderTargets[3] =
 		{
 			pRenderTargetCoCDowres[gFrameIndex],
-			pRenderTargetNear[gFrameIndex],
+			pRenderTargetColorDownres[gFrameIndex],
 			pRenderTargetFar[gFrameIndex],
 		};
 
@@ -790,7 +799,7 @@ class CircularDOF: public IApp
 				{ pHorizontalFarRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHorizontalFarRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHorizontalFarRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
@@ -919,6 +928,14 @@ class CircularDOF: public IApp
 								   ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &samplerDesc, &pSamplerLinear);
 
+		samplerDesc = { FILTER_LINEAR,
+						FILTER_LINEAR,
+						MIPMAP_MODE_LINEAR,
+						ADDRESS_MODE_CLAMP_TO_EDGE,
+						ADDRESS_MODE_CLAMP_TO_EDGE,
+						ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pSamplerLinearClampEdge);
+
 		samplerDesc = { FILTER_NEAREST,
 						FILTER_NEAREST,
 						MIPMAP_MODE_NEAREST,
@@ -931,6 +948,7 @@ class CircularDOF: public IApp
 	void RemoveSamplers()
 	{
 		removeSampler(pRenderer, pSamplerLinear);
+		removeSampler(pRenderer, pSamplerLinearClampEdge);
 		removeSampler(pRenderer, pSamplerPoint);
 	}
 
@@ -1079,7 +1097,7 @@ class CircularDOF: public IApp
 		// CoC
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge };
 			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[1] = { pShaderGenCoc };
@@ -1101,7 +1119,7 @@ class CircularDOF: public IApp
 		// Downres
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear, pSamplerPoint };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
 			uint        numStaticSamplers = 2;
 			{
 				Shader* shaders[1] = { pShaderDownres };
@@ -1123,7 +1141,7 @@ class CircularDOF: public IApp
 		// Far Horizontal DoF
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear, pSamplerPoint };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
 			uint        numStaticSamplers = 2;
 			{
 				Shader* shaders[1] = { pShaderHorizontalDof };
@@ -1145,7 +1163,7 @@ class CircularDOF: public IApp
 		// Composite
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear, pSamplerPoint };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
 			uint        numStaticSamplers = 2;
 			{
 				Shader* shaders[1] = { pShaderComposite };
@@ -1238,12 +1256,10 @@ class CircularDOF: public IApp
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				DescriptorData params[3] = {};
-				params[0].pName = "DepthTexture";
-				params[0].ppTextures = &pDepthBuffer->pTexture;
-				params[1].pName = "UniformDOF";
-				params[1].ppBuffers = &pUniformBuffersDOF[i];
-				params[2].pName = "cbPerPass";
-				params[2].ppBuffers = &pUniformBuffersProjView[i];
+				params[0].pName = "UniformDOF";
+				params[0].ppBuffers = &pUniformBuffersDOF[i];
+				params[1].pName = "DepthTexture";
+				params[1].ppTextures = &pDepthBuffer->pTexture;
 				updateDescriptorSet(pRenderer, i,
 					pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2,
 					params);
@@ -1269,13 +1285,15 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[2] = {};
+				DescriptorData params[3] = {};
 				params[0].pName = "TextureFar";
-				params[0].ppTextures = &pRenderTargetFar[i]->pTexture;
+				params[0].ppTextures = &pRenderTargetColorDownres[i]->pTexture;
 				params[1].pName = "TextureCoC";
 				params[1].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
+				params[2].pName = "UniformDOF";
+				params[2].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2,
+					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 3,
 					params);
 			}
 		}
@@ -1284,19 +1302,21 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[5] = {};
-				params[0].pName = "TextureCoC";
-				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
+				DescriptorData params[6] = {};
+				params[0].pName = "TextureColor";
+				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
 				params[1].pName = "TextureFarR";
 				params[1].ppTextures = &pRenderTargetFarR[i]->pTexture;
 				params[2].pName = "TextureFarG";
 				params[2].ppTextures = &pRenderTargetFarG[i]->pTexture;
 				params[3].pName = "TextureFarB";
 				params[3].ppTextures = &pRenderTargetFarB[i]->pTexture;
-				params[4].pName = "TextureColor";
-				params[4].ppTextures = &pRenderTargetHDR[i]->pTexture;
+				params[4].pName = "TextureCoC";
+				params[4].ppTextures = &pRenderTargetCoC[i]->pTexture;
+				params[5].pName = "UniformDOF";
+				params[5].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 5,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 6,
 					params);
 			}
 		}
@@ -1344,7 +1364,7 @@ class CircularDOF: public IApp
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue = clearVal;
-			rtDesc.mFormat = TinyImageFormat_R32G32_SFLOAT;
+			rtDesc.mFormat = TinyImageFormat_R8G8_UNORM;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth;
 			rtDesc.mHeight = mSettings.mHeight;
@@ -1360,7 +1380,7 @@ class CircularDOF: public IApp
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue = clearVal;
-			rtDesc.mFormat = TinyImageFormat_R8G8_UNORM;
+			rtDesc.mFormat = pRenderTargetCoC[0]->mDesc.mFormat;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth / 2;
 			rtDesc.mHeight = mSettings.mHeight / 2;
@@ -1371,7 +1391,7 @@ class CircularDOF: public IApp
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetCoCDowres[i]);
 		}
 
-		// Near + Far DownSampled
+		// Color + Far Downres
 		{
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
@@ -1385,7 +1405,7 @@ class CircularDOF: public IApp
 
 			for (int i = 0; i < gImageCount; ++i)
 			{
-				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetNear[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetColorDownres[i]);
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFar[i]);
 			}
 		}
@@ -1421,7 +1441,7 @@ class CircularDOF: public IApp
 			removeRenderTarget(pRenderer, pRenderTargetHDR[i]);
 			removeRenderTarget(pRenderer, pRenderTargetCoC[i]);
 			removeRenderTarget(pRenderer, pRenderTargetCoCDowres[i]);
-			removeRenderTarget(pRenderer, pRenderTargetNear[i]);
+			removeRenderTarget(pRenderer, pRenderTargetColorDownres[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFar[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFarR[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFarG[i]);
@@ -1498,7 +1518,7 @@ class CircularDOF: public IApp
 			TinyImageFormat formats[3] =
 			{
 				pRenderTargetCoCDowres[0]->mDesc.mFormat,
-				pRenderTargetNear[0]->mDesc.mFormat,
+				pRenderTargetColorDownres[0]->mDesc.mFormat,
 				pRenderTargetFar[0]->mDesc.mFormat
 			};
 

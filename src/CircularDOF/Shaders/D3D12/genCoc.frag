@@ -7,20 +7,15 @@ struct VSOutput
 SamplerState	samplerLinear	: register(s0);
 Texture2D		DepthTexture	: register(t0, UPDATE_FREQ_PER_FRAME);
 
-cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME) 
-{
-	float4x4	proj;
-	float4x4	view;
-}
-
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
 {
-	float	filterRadius;
+	float	maxRadius;
+	float	blend;
 	float	nb;
 	float	ne;
 	float	fb;
-	float	fe;
-	float3	pad;
+	float	fe;	
+	float2 projParams;
 };
 
 struct PSOut
@@ -36,8 +31,9 @@ float LinearizeDepth(float depth)
 
 float DepthNDCToView(float depth_ndc)
 {
-	return -proj[2][2] / (depth_ndc + proj[3][2]);
+	return -projParams.y / (depth_ndc + projParams.x);
 }
+
 
 PSOut main(VSOutput input) : SV_TARGET
 {

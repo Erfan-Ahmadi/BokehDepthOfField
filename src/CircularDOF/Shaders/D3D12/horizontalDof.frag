@@ -59,6 +59,11 @@ static const float4 Kernel1_RealX_ImY_RealZ_ImW[] = {
         float4(/*XY: Non Bracketed*/0.000115,0.009116,/*Bracketed WZ:*/0.000000,0.051147)
 };
 
+cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
+{
+	float	maxRadius;
+	float	blend;
+};
 
 struct VSOutput 
 {
@@ -91,7 +96,7 @@ PSOut main(VSOutput input) : SV_TARGET
     float4 valB = float4(0,0,0,0);
 
 	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
-	float filterRadiusFar = cocValue.g * 4.0f;
+	float filterRadiusFar = cocValue.g * maxRadius;
 
 	if(filterRadiusFar == 0)
 	{
@@ -109,7 +114,7 @@ PSOut main(VSOutput input) : SV_TARGET
 		float2 c0 = Kernel0_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
 		float2 c1 = Kernel1_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
 
-		float3 texel = TextureFar.Sample(samplerLinear, coords).rgb / cocValue.g;
+		float3 texel = TextureFar.Sample(samplerLinear, coords).rgb;
 
 		valR += float4(texel.r * c0, texel.r * c1);
 		valG += float4(texel.g * c0, texel.g * c1);

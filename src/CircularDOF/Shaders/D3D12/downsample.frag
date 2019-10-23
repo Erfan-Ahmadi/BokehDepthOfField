@@ -12,7 +12,7 @@ Texture2D		TextureColor	: register(t1, UPDATE_FREQ_PER_FRAME);
 struct PSOut
 {
     float2 DownresCoC	: SV_Target0;
-    float4 MulNear		: SV_Target1;
+    float4 DownresColor	: SV_Target1;
     float4 MulFar		: SV_Target2;
 };
 
@@ -20,9 +20,9 @@ PSOut main(VSOutput input) : SV_TARGET
 {
 	PSOut output;
 
-	output.DownresCoC = TextureCoC.Sample(samplerPoint, input.UV).rg;
+	output.DownresCoC = TextureCoC.Sample(samplerLinear, input.UV).rg;
 	
-	output.MulNear = TextureColor.Sample(samplerLinear, input.UV) * output.DownresCoC.r;
+	output.DownresColor = TextureColor.Sample(samplerLinear, input.UV);
 	
 	output.MulFar = TextureColor.Sample(samplerLinear, input.UV) * output.DownresCoC.g;
 
