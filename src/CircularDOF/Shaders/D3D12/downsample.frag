@@ -13,7 +13,6 @@ struct PSOut
 {
     float2 DownresCoC	: SV_Target0;
     float4 DownresColor	: SV_Target1;
-    float4 MulFar		: SV_Target2;
 };
 
 PSOut main(VSOutput input) : SV_TARGET
@@ -23,8 +22,6 @@ PSOut main(VSOutput input) : SV_TARGET
 	output.DownresCoC = TextureCoC.Sample(samplerLinear, input.UV).rg;
 	
 	output.DownresColor = TextureColor.Sample(samplerLinear, input.UV);
-	
-	output.MulFar = TextureColor.Sample(samplerLinear, input.UV) * output.DownresCoC.g;
 
     return output;
 }

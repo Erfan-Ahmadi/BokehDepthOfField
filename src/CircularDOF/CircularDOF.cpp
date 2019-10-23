@@ -17,16 +17,19 @@
 
 uint32_t gFrameIndex = 0;
 
-const uint32_t gImageCount = 3;
+const uint32_t gImageCount			= 3;
 
-bool bToggleMicroProfiler = false;
-bool bPrevToggleMicroProfiler = false;
+bool bToggleMicroProfiler			= false;
+bool bPrevToggleMicroProfiler		= false;
 
-constexpr float gNear		= 0.1f;
-constexpr float gFar		= 3000.0f;
+constexpr float gNear				= 0.1f;
+constexpr float gFar				= 3000.0f;
 
-static float gFocalPlane	= 380;
-static float gFocalRange	= 160;
+static float gFocalPlane			= 380;
+static float gFocalRange			= 160;
+
+constexpr size_t gPointLights		= 1;
+constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
@@ -76,6 +79,36 @@ struct UniformDataDOF
 	float2 projParams	= {};
 };
 
+struct PointLight
+{
+	#ifdef VULKAN
+	alignas(16) float3 position;
+	alignas(16) float3 ambient;
+	alignas(16) float3 diffuse;
+	alignas(16) float3 specular;
+	alignas(16) float3 attenuationParams;
+	#elif DIRECT3D12
+	float3 position;
+	float3 ambient;
+	float3 diffuse;
+	float3 specular;
+	float3 attenuationParams;
+	float _pad0;
+	#endif
+};
+
+struct LightData
+{
+	int numPointLights;
+	float3 viewPos;
+};
+
+struct
+{
+	float3 position[gPointLights];
+	float3 color[gPointLights];
+} lightInstancedata;
+
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -99,12 +132,14 @@ Semaphore* pImageAcquiredSemaphore 												= NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 
 Pipeline* pPipelineScene 														= NULL;
+Pipeline* pPipelineLight 														= NULL;
 Pipeline* pPipelineDownres 														= NULL;
 Pipeline* pPipelineCoC 															= NULL;
 Pipeline* pPipelineHorizontalDOF 												= NULL;
 Pipeline* pPipelineComposite 													= NULL;
 
 Shader* pShaderBasic 															= NULL;
+Shader* pShaderLight 															= NULL;
 Shader* pShaderGenCoc 															= NULL;
 Shader* pShaderDownres 															= NULL;
 Shader* pShaderHorizontalDof 													= NULL;
@@ -128,16 +163,15 @@ Sampler* pSamplerPoint;
 
 RenderTarget* pDepthBuffer;
 
-RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL };
-RenderTarget* pRenderTargetCoC[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetHDR[gImageCount]										= { NULL }; // R16G16B16A16
+RenderTarget* pRenderTargetCoC[gImageCount]										= { NULL }; // R8G8
 
-RenderTarget* pRenderTargetCoCDowres[gImageCount]								= { NULL };
-RenderTarget* pRenderTargetColorDownres[gImageCount]							= { NULL };
-RenderTarget* pRenderTargetFar[gImageCount]										= { NULL };
+RenderTarget* pRenderTargetCoCDowres[gImageCount]								= { NULL }; // COC/4
+RenderTarget* pRenderTargetColorDownres[gImageCount]							= { NULL };	// HDR/4
 
-RenderTarget* pRenderTargetFarR[gImageCount]									= { NULL };
-RenderTarget* pRenderTargetFarG[gImageCount]									= { NULL };
-RenderTarget* pRenderTargetFarB[gImageCount]									= { NULL };
+RenderTarget* pRenderTargetFarR[gImageCount]									= { NULL }; // FAR/4
+RenderTarget* pRenderTargetFarG[gImageCount]									= { NULL }; // FAR/4
+RenderTarget* pRenderTargetFarB[gImageCount]									= { NULL }; // FAR/4
 
 RasterizerState* pRasterDefault 												= NULL;
 
@@ -147,9 +181,18 @@ DepthState* pDepthNone 															= NULL;
 Buffer* pUniformBuffersProjView[gImageCount] 									= { NULL };
 Buffer* pUniformBuffersDOF[gImageCount] 										= { NULL };
 
+Buffer* pPointLightsBuffer														= NULL;
+Buffer* pLightDataBuffer														= NULL;
+Buffer* pInstancePositionBuffer													= NULL;
+Buffer* pInstanceColorBuffer													= NULL;
+
 cbPerPass			gUniformDataScene;
 UniformDataDOF		gUniformDataDOF;
 SceneData			gSponzaSceneData;
+MeshBatch* gLightMesh;
+
+PointLight			pointLights[gPointLights];
+LightData			lightData;
 
 //--------------------------------------------------------------------------------------------
 // Sponza Data
@@ -328,7 +371,7 @@ const char* pszBases[FSR_Count] =
 class CircularDOF: public IApp
 {
 	public:
-	CircularDOF() 
+	CircularDOF()
 	{
 		mSettings.mWidth = 1280;
 		mSettings.mHeight = 720;
@@ -397,7 +440,7 @@ class CircularDOF: public IApp
 		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
-		CameraMotionParameters cmp { 500.0f, 250.0f, 500.0f };
+		CameraMotionParameters cmp { 800.0f, 800.0f, 1000.0f };
 		vec3                   camPos { 100.0f, 25.0f, 0.0f };
 		vec3                   lookAt { 0 };
 
@@ -535,6 +578,10 @@ class CircularDOF: public IApp
 		static float currentTime;
 		currentTime += deltaTime;
 
+		static float currentLightTime;
+		if (!gPauseLights)
+			currentLightTime += deltaTime;
+
 		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
@@ -553,6 +600,19 @@ class CircularDOF: public IApp
 		gUniformDataDOF.ne = gFocalPlane - gFocalRange;
 
 		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
+
+		pointLights[0].position = float3 { 0.0f + 4 * sin(2 * currentLightTime), 1.0f, 6.0f + 4 * cos(2 * currentLightTime) };
+		pointLights[0].ambient = float3 { 0.01f, 0.01f, 0.01f };
+		pointLights[0].diffuse = float3 { 1.0f, 2.0f, 2.0f };
+		pointLights[0].specular = float3 { 1.0f, 3.0f, 3.0f };
+		pointLights[0].attenuationParams = float3 { 1.0f, 0.0014f, 0.000007 };
+		lightData.numPointLights = gPointLights;
+
+		for (int i = 0; i < gPointLights; ++i)
+		{
+			lightInstancedata.position[i] = pointLights[i].position;
+			lightInstancedata.color[i] = pointLights[i].diffuse;
+		}
 
 		if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
 		{
@@ -589,6 +649,13 @@ class CircularDOF: public IApp
 		BufferUpdateDesc uniformDOF = { pUniformBuffersDOF[gFrameIndex], &gUniformDataDOF };
 		updateResource(&uniformDOF);
 
+		// Update Light uniform buffers
+		BufferUpdateDesc lightBuffUpdate = { pLightDataBuffer, &lightData };
+		updateResource(&lightBuffUpdate);
+
+		BufferUpdateDesc pointLightBuffUpdate = { pPointLightsBuffer, &pointLights };
+		updateResource(&pointLightBuffUpdate);
+
 		// Load Actions
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -607,11 +674,10 @@ class CircularDOF: public IApp
 		RenderTarget* pHdrRenderTarget = pRenderTargetHDR[gFrameIndex];
 		RenderTarget* pGenCocRenderTarget = pRenderTargetCoC[gFrameIndex];
 
-		RenderTarget* pDownresRenderTargets[3] =
+		RenderTarget* pDownresRenderTargets[2] =
 		{
 			pRenderTargetCoCDowres[gFrameIndex],
 			pRenderTargetColorDownres[gFrameIndex],
-			pRenderTargetFar[gFrameIndex],
 		};
 
 		RenderTarget* pHorizontalFarRenderTargets[3] =
@@ -721,15 +787,14 @@ class CircularDOF: public IApp
 			{
 				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDownresRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pDownresRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
 
 			loadActions = {};
-			cmdBindRenderTargets(cmd, 3, pDownresRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 2, pDownresRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
 				cmd, 0.0f, 0.0f, (float)pDownresRenderTargets[0]->mDesc.mWidth,
@@ -753,16 +818,15 @@ class CircularDOF: public IApp
 		{
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Far Horizontal Blur Pass", true);
 
-			TextureBarrier textureBarriers[5] =
+			TextureBarrier textureBarriers[4] =
 			{
 				{ pHorizontalFarRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pHorizontalFarRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pHorizontalFarRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // CoC DownRes
-				{ pDownresRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE } // Far DownRes
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
 
 			loadActions = {};
 
@@ -1011,6 +1075,50 @@ class CircularDOF: public IApp
 				addResource(&bufferDesc);
 			}
 		}
+
+		// Light Uniform Buffer
+		{
+			BufferLoadDesc bufferDesc = {};
+			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			bufferDesc.mDesc.mSize = sizeof(lightData);
+			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			bufferDesc.pData = NULL;
+			bufferDesc.ppBuffer = &pLightDataBuffer;
+			addResource(&bufferDesc);
+		}
+
+		// PointLights Structured Buffer
+		{
+			BufferLoadDesc bufferDesc = {};
+			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
+			bufferDesc.mDesc.mFirstElement = 0;
+			bufferDesc.mDesc.mElementCount = gPointLights;
+			bufferDesc.mDesc.mStructStride = sizeof(PointLight);
+			bufferDesc.mDesc.mSize = bufferDesc.mDesc.mStructStride * bufferDesc.mDesc.mElementCount;
+			bufferDesc.pData = NULL;
+			bufferDesc.ppBuffer = &pPointLightsBuffer;
+			addResource(&bufferDesc);
+		}
+
+		// Light Instance
+		{
+			BufferLoadDesc bufferDesc = {};
+			bufferDesc = {};
+			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			bufferDesc.mDesc.mVertexStride = sizeof(float3);
+			bufferDesc.mDesc.mSize = sizeof(float3) * gPointLights;
+			bufferDesc.mDesc.mStartState = RESOURCE_STATE_GENERIC_READ;
+			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			bufferDesc.pData = NULL;
+			bufferDesc.ppBuffer = &pInstancePositionBuffer;
+			addResource(&bufferDesc);
+			bufferDesc.ppBuffer = &pInstanceColorBuffer;
+			addResource(&bufferDesc);
+		}
 	}
 
 	void RemoveBuffers()
@@ -1020,6 +1128,10 @@ class CircularDOF: public IApp
 			removeResource(pUniformBuffersProjView[i]);
 			removeResource(pUniformBuffersDOF[i]);
 		}
+
+		removeResource(pInstancePositionBuffer);
+		removeResource(pLightDataBuffer);
+		removeResource(pPointLightsBuffer);
 	}
 
 	// Shaders
@@ -1032,12 +1144,15 @@ class CircularDOF: public IApp
 		shaderDesc.mStages[1] = { "basic.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
 
+		shaderDesc.mStages[0] = { "light.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "light.frag", NULL, 0, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderLight);
+
 		ShaderMacro    ShaderMacroCoC[2] =
 		{
 			{ "zNear", eastl::string().sprintf("%f", gNear) },
 			{ "zFar", eastl::string().sprintf("%f", gFar) }
 		};
-
 		shaderDesc.mStages[0] = { "genCoc.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "genCoc.frag", ShaderMacroCoC, 2, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderGenCoc);
@@ -1058,6 +1173,7 @@ class CircularDOF: public IApp
 	void RemoveShaders()
 	{
 		removeShader(pRenderer, pShaderBasic);
+		removeShader(pRenderer, pShaderLight);
 		removeShader(pRenderer, pShaderGenCoc);
 		removeShader(pRenderer, pShaderDownres);
 		removeShader(pRenderer, pShaderHorizontalDof);
@@ -1074,9 +1190,9 @@ class CircularDOF: public IApp
 			Sampler* pStaticSamplers [] = { pSamplerLinear };
 			uint        numStaticSamplers = 1;
 			{
-				Shader* shaders[1] = { pShaderBasic };
+				Shader* shaders[2] = { pShaderBasic, pShaderLight };
 				RootSignatureDesc rootDesc = {};
-				rootDesc.mShaderCount = 1;
+				rootDesc.mShaderCount = 2;
 				rootDesc.ppShaders = shaders;
 				rootDesc.mStaticSamplerCount = numStaticSamplers;
 				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
@@ -1213,41 +1329,21 @@ class CircularDOF: public IApp
 			DescriptorData params[2] = {};
 			params[0].pName = "cbPerProp";
 			params[0].ppBuffers = &gSponzaSceneData.pConstantBuffer;
-			#ifndef TARGET_IOS
 			params[1].pName = "textureMaps";
 			params[1].ppTextures = pMaterialTexturesSponza;
 			params[1].mCount = TOTAL_SPONZA_IMGS;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[0], 2, params);
-			#else
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetsScene[0], 1, params);
-
-			for (uint32_t i = 0; i < (uint32_t)SponzaProp.MeshBatches.size(); ++i)
-			{
-				MeshBatch* mesh = SponzaProp.MeshBatches[i];
-				int materialID = mesh->MaterialID;
-				materialID *= 5;    //because it uses 5 basic textures for rendering BRDF
-
-				//bind textures explicitely for iOS
-				//we only use Albedo for the time being so just bind the albedo texture.
-				//for (int j = 0; j < 5; ++j)
-				{
-					params[0].pName = pTextureName[0];    //Albedo texture name
-					uint textureId = gSponzaTextureIndexforMaterial[materialID];
-					params[0].ppTextures = &pMaterialTextures[textureId];
-				}
-				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
-				//descriptor param count.
-				//one descriptor param if using bindless textures
-				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2], 1, params);
-			}
-			#endif
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[1] = {};
+				DescriptorData params[3] = {};
 				params[0].pName = "cbPerPass";
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
+				params[1].pName = "LightData";
+				params[1].ppBuffers = &pLightDataBuffer;
+				params[2].pName = "PointLights";
+				params[2].ppBuffers = &pPointLightsBuffer;
+				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 3, params);
 			}
 		}
 
@@ -1396,7 +1492,7 @@ class CircularDOF: public IApp
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue = clearVal;
-			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+			rtDesc.mFormat = pRenderTargetHDR[0]->mDesc.mFormat;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth / 2;
 			rtDesc.mHeight = mSettings.mHeight / 2;
@@ -1406,7 +1502,6 @@ class CircularDOF: public IApp
 			for (int i = 0; i < gImageCount; ++i)
 			{
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetColorDownres[i]);
-				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFar[i]);
 			}
 		}
 
@@ -1415,10 +1510,10 @@ class CircularDOF: public IApp
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue = clearVal;
-			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT; //TinyImageFormat_R8G8B8A8_UNORM
+			rtDesc.mFormat = pRenderTargetHDR[0]->mDesc.mFormat; //Bracket Later
 			rtDesc.mDepth = 1;
-			rtDesc.mWidth = pRenderTargetFar[0]->mDesc.mWidth;
-			rtDesc.mHeight =  pRenderTargetFar[0]->mDesc.mHeight;
+			rtDesc.mWidth = pRenderTargetColorDownres[0]->mDesc.mWidth;
+			rtDesc.mHeight =  pRenderTargetColorDownres[0]->mDesc.mHeight;
 			rtDesc.mSampleCount = SAMPLE_COUNT_1;
 			rtDesc.mSampleQuality = 0;
 
@@ -1442,7 +1537,6 @@ class CircularDOF: public IApp
 			removeRenderTarget(pRenderer, pRenderTargetCoC[i]);
 			removeRenderTarget(pRenderer, pRenderTargetCoCDowres[i]);
 			removeRenderTarget(pRenderer, pRenderTargetColorDownres[i]);
-			removeRenderTarget(pRenderer, pRenderTargetFar[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFarR[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFarG[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFarB[i]);
@@ -1494,6 +1588,49 @@ class CircularDOF: public IApp
 			addPipeline(pRenderer, &desc, &pPipelineScene);
 		}
 
+		// Render Light Bulbs
+		{
+			VertexLayout vertexLayout = {};
+			vertexLayout.mAttribCount = 3;
+
+			vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+			vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[0].mBinding = 0;
+			vertexLayout.mAttribs[0].mLocation = 0;
+			vertexLayout.mAttribs[0].mOffset = 0;
+
+			vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+			vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[1].mRate = VERTEX_ATTRIB_RATE_INSTANCE;
+			vertexLayout.mAttribs[1].mBinding = 1;
+			vertexLayout.mAttribs[1].mLocation = 1;
+			vertexLayout.mAttribs[1].mOffset = 0;
+
+			vertexLayout.mAttribs[2].mSemantic = SEMANTIC_COLOR;
+			vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[2].mRate = VERTEX_ATTRIB_RATE_INSTANCE;
+			vertexLayout.mAttribs[2].mBinding = 2;
+			vertexLayout.mAttribs[2].mLocation = 2;
+			vertexLayout.mAttribs[2].mOffset = 0;
+
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = pDepthDefault;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+			pipelineSettings.pColorFormats = &pRenderTargetHDR[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pRenderTargetHDR[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetHDR[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureScene;
+			pipelineSettings.pShaderProgram = pShaderLight;
+			pipelineSettings.pVertexLayout = &vertexLayout;
+			pipelineSettings.pRasterizerState = pRasterDefault;
+
+			addPipeline(pRenderer, &desc, &pPipelineLight);
+		}
+
 		// CoC Gen
 		{
 			PipelineDesc desc = {};
@@ -1515,18 +1652,17 @@ class CircularDOF: public IApp
 
 		// Downres
 		{
-			TinyImageFormat formats[3] =
+			TinyImageFormat formats[2] =
 			{
 				pRenderTargetCoCDowres[0]->mDesc.mFormat,
 				pRenderTargetColorDownres[0]->mDesc.mFormat,
-				pRenderTargetFar[0]->mDesc.mFormat
 			};
 
 			PipelineDesc desc = {};
 			desc.mType = PIPELINE_TYPE_GRAPHICS;
 			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = 3;
+			pipelineSettings.mRenderTargetCount = 2;
 			pipelineSettings.pDepthState = pDepthNone;
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 			pipelineSettings.pColorFormats = formats;
@@ -1921,7 +2057,47 @@ class CircularDOF: public IApp
 		}
 
 		AssignSponzaTextures();
-		finishResourceLoading();
+
+		{
+			AssimpImporter::Model sphereModel;
+			{
+				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/geosphere.obj", &sphereModel))
+				{
+					return false;
+				}
+
+				size_t meshSize = sphereModel.mMeshArray.size();
+
+				AssimpImporter::Mesh subMesh = sphereModel.mMeshArray[0];
+
+				MeshBatch* pMeshBatch = (MeshBatch*)conf_placement_new<MeshBatch>(conf_calloc(1, sizeof(MeshBatch)));
+
+				gLightMesh = pMeshBatch;
+
+				// Vertex Buffer
+				BufferLoadDesc bufferDesc = {};
+				bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+				bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				bufferDesc.mDesc.mVertexStride = sizeof(float3);
+				bufferDesc.mDesc.mSize = bufferDesc.mDesc.mVertexStride * subMesh.mPositions.size();
+				bufferDesc.pData = subMesh.mPositions.data();
+				bufferDesc.ppBuffer = &pMeshBatch->pPositionStream;
+				addResource(&bufferDesc);
+
+				pMeshBatch->mCountIndices = subMesh.mIndices.size();
+
+				// Index buffer
+				bufferDesc = {};
+				bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+				bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				bufferDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
+				bufferDesc.mDesc.mSize = sizeof(uint) * (uint)subMesh.mIndices.size();
+				bufferDesc.pData = subMesh.mIndices.data();
+				bufferDesc.ppBuffer = &pMeshBatch->pIndicesStream;
+				addResource(&bufferDesc);
+			}
+		}
+
 		return true;
 	}
 
@@ -1943,6 +2119,11 @@ class CircularDOF: public IApp
 
 		for (uint i = 0; i < TOTAL_SPONZA_IMGS; ++i)
 			removeResource(pMaterialTexturesSponza[i]);
+
+		removeResource(gLightMesh->pIndicesStream);
+		//removeResource(gLightMesh->pNormalStream);
+		removeResource(gLightMesh->pPositionStream);
+		//removeResource(gLightMesh->pUVStream);
 	}
 };
 

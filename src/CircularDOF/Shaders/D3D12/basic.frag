@@ -1,7 +1,26 @@
+struct PointLight 
+{
+	float3 position;
+	float3 ambient;
+	float3 diffuse;
+	float3 specular;
+	
+    float att_constant;
+    float att_linear;
+    float att_quadratic;
+	float _pad0;
+};
+
 cbuffer cbTextureRootConstants : register(b2) 
 {
 	uint albedoMap;
 }
+
+cbuffer LightData : register(b1, UPDATE_FREQ_PER_FRAME)
+{
+	int numPointLights;
+	float3 viewPos;
+};
 
 struct PsIn
 {    
@@ -13,15 +32,60 @@ struct PsIn
 
 SamplerState	samplerLinear		: register(s0);
 
-// material parameters
-Texture2D textureMaps[]			: register(t3);
+StructuredBuffer <PointLight>	PointLights			: register(t0, UPDATE_FREQ_PER_FRAME);
 
-float4 main(PsIn input) : SV_TARGET
+// material parameters
+Texture2D						textureMaps[]		: register(t3);
+
+float3 calculatePointLight(PointLight pointLight, float3 normal, float3 viewDir, float3 fragPosition, float3 albedo);
+
+struct PSOut
 {
-	//load albedo
+    float4 color	: SV_Target0;
+};
+
+PSOut main(PsIn input) : SV_TARGET
+{
+	PSOut output;
+
+	float3 normal = normalize(input.normal.xyz);
+	float3 viewDir = normalize(viewPos - input.pos.xyz);
+	
+	float3 result;
+	
 	float3 albedo = textureMaps[albedoMap].Sample(samplerLinear, input.uv).rgb;
-	// luma trick to mimic HDR, and take advantage of 16 bit buffers shader toy provides.
-	float lum = dot(albedo.rgb, float3(0.2126,0.7152,0.0722)) * 1.8;
-	albedo = albedo * (1.0 + 0.2*lum*lum*lum);
-	return float4(albedo * albedo, 1);
+
+	for(int i = 0; i < numPointLights; ++i)
+		result += calculatePointLight(PointLights[i], normal, viewDir, input.pos.xyz, albedo);
+		
+    output.color = float4(result, 1.0f);
+
+	return output;
+}
+
+float3 calculatePointLight(PointLight pointLight, float3 normal, float3 viewDir, float3 fragPosition, float3 albedo)
+{
+	float3 difference = pointLight.position - fragPosition;
+
+	float3 lightDir = normalize(difference);
+	float3 reflectDir = reflect(-lightDir, normal);
+
+	// Calc Attenuation
+	float distance = length(difference);
+	float3 dis = float3(1, distance, pow(distance, 2));
+	float3 att = float3(pointLight.att_constant, pointLight.att_linear, pointLight.att_quadratic);
+	float attenuation = 1.0f / dot(dis, att);
+
+	// Ambient
+    float3 ambient = pointLight.ambient;
+
+	// Diffuse
+	float diff = max(dot(lightDir, normal), 0.0f);
+	float3 diffuse = diff * pointLight.diffuse;
+
+	// Specular
+	float spec = pow(max(dot(reflectDir, viewDir), 0.0), 64);
+	float3 specular = spec * pointLight.specular;  
+
+	return attenuation * (ambient + diffuse + specular) * albedo;
 }
