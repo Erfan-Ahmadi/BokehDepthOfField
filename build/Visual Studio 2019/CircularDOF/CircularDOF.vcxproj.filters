@@ -13,18 +13,18 @@
     <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{73c7697d-0e9d-412c-8028-db7d1dc84b6e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\D3D12\meshes">
+      <UniqueIdentifier>{3041f09a-17e7-4baa-a97d-616512650706}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12\dof">
+      <UniqueIdentifier>{ea9aa1bc-f9c8-45a6-9fb0-a625dd05084d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.frag">
       <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag">
       <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\profile.frag">
@@ -39,35 +39,47 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert">
-      <Filter>Shaders\D3D12</Filter>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12\meshes</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.vert">
-      <Filter>Shaders\D3D12</Filter>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12\meshes</Filter>
     </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\light.frag">
-      <Filter>Shaders\D3D12</Filter>
+      <Filter>Shaders\D3D12\meshes</Filter>
     </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\light.vert">
-      <Filter>Shaders\D3D12</Filter>
+      <Filter>Shaders\D3D12\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.vert">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.vert">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.vert">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert">
+      <Filter>Shaders\D3D12\dof</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

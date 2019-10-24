@@ -31,6 +31,8 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag" />

@@ -28,7 +28,7 @@ constexpr float gFar				= 3000.0f;
 static float gFocalPlane			= 380;
 static float gFocalRange			= 160;
 
-constexpr size_t gPointLights		= 3;
+constexpr size_t gPointLights		= 4;
 constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
@@ -121,12 +121,13 @@ CmdPool* pCmdPool																= NULL;
 Cmd** ppCmdsHDR 																= NULL;
 Cmd** ppCmdsCoC 																= NULL;
 Cmd** ppCmdsDownress 															= NULL;
+Cmd** ppCmdsFilterNearCoC 														= NULL;
 Cmd** ppCmdsHorizontalDof 														= NULL;
 Cmd** ppCmdsComposite															= NULL;
 
 SwapChain* pSwapChain 															= NULL;
 
-Fence* pRenderCompleteFences[gImageCount] 										= { NULL };
+Fence* pRenderCompleteFences[gImageCount] 									= { NULL };
 
 Semaphore* pImageAcquiredSemaphore 												= NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
@@ -134,6 +135,7 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 Pipeline* pPipelineScene 														= NULL;
 Pipeline* pPipelineLight 														= NULL;
 Pipeline* pPipelineDownres 														= NULL;
+Pipeline* pPipelineFilterNearCoC 												= NULL;
 Pipeline* pPipelineCoC 															= NULL;
 Pipeline* pPipelineHorizontalDOF 												= NULL;
 Pipeline* pPipelineComposite 													= NULL;
@@ -142,17 +144,20 @@ Shader* pShaderBasic 															= NULL;
 Shader* pShaderLight 															= NULL;
 Shader* pShaderGenCoc 															= NULL;
 Shader* pShaderDownres 															= NULL;
+Shader* pShaderFilterNearCoC 													= NULL;
 Shader* pShaderHorizontalDof 													= NULL;
 Shader* pShaderComposite 														= NULL;
 
 DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsDownres[DESCRIPTOR_UPDATE_FREQ_COUNT] 			= { NULL };
+DescriptorSet* pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 
 RootSignature* pRootSignatureScene 												= NULL;
 RootSignature* pRootSignatureDownres 											= NULL;
+RootSignature* pRootSignatureFilterNearCoC 										= NULL;
 RootSignature* pRootSignatureCoC 												= NULL;
 RootSignature* pRootSignatureHorizontalPass										= NULL;
 RootSignature* pRootSignatureCompositePass 										= NULL;
@@ -169,9 +174,15 @@ RenderTarget* pRenderTargetCoC[gImageCount]										= { NULL }; // R8G8
 RenderTarget* pRenderTargetCoCDowres[gImageCount]								= { NULL }; // COC/4
 RenderTarget* pRenderTargetColorDownres[gImageCount]							= { NULL };	// HDR/4
 
+RenderTarget* pRenderTargetFilterNearCoC[gImageCount]							= { NULL };	// R8/4
+
 RenderTarget* pRenderTargetFarR[gImageCount]									= { NULL }; // FAR/4
 RenderTarget* pRenderTargetFarG[gImageCount]									= { NULL }; // FAR/4
 RenderTarget* pRenderTargetFarB[gImageCount]									= { NULL }; // FAR/4
+
+RenderTarget* pRenderTargetNearR[gImageCount]									= { NULL }; // NEAR/4
+RenderTarget* pRenderTargetNearG[gImageCount]									= { NULL }; // NEAR/4
+RenderTarget* pRenderTargetNearB[gImageCount]									= { NULL }; // NEAR/4
 
 RasterizerState* pRasterDefault 												= NULL;
 
@@ -554,7 +565,7 @@ class CircularDOF: public IApp
 		{
 			pointLights[i].attenuationParams = float3 { 1.0f, 0.007f, 0.0002f };
 			pointLights[i].ambient = float3 { 0.015f, 0.015f, 0.015f };
-			pointLights[i].position = float3 { 1000.0f - 400.0f * i, (rand() % 400) * 1.0f,  (rand() % 300) - 150.0f };
+			pointLights[i].position = float3 { 1000.0f - 550.0f * i, (rand() % 400) * 1.0f,  (rand() % 300) - 150.0f };
 			pointLights[i].diffuse = float3 { (rand() % 255) / 255.0f, (rand() % 255) / 255.0f, (rand() % 255) / 255.0f };
 			pointLights[i].specular = pointLights[i].diffuse;
 		}
@@ -689,12 +700,18 @@ class CircularDOF: public IApp
 			pRenderTargetColorDownres[gFrameIndex],
 		};
 
-		RenderTarget* pHorizontalFarRenderTargets[3] =
+		RenderTarget* pFilteredNearCoC = pRenderTargetFilterNearCoC[gFrameIndex];
+
+		RenderTarget* pHorizontalRenderTargets[6] =
 		{
 			pRenderTargetFarR[gFrameIndex],
 			pRenderTargetFarG[gFrameIndex],
 			pRenderTargetFarB[gFrameIndex],
+			pRenderTargetNearR[gFrameIndex],
+			pRenderTargetNearG[gFrameIndex],
+			pRenderTargetNearB[gFrameIndex],
 		};
+
 
 		Cmd* cmd = ppCmdsHDR[gFrameIndex];
 		beginCmd(cmd);
@@ -764,6 +781,7 @@ class CircularDOF: public IApp
 
 		cmd = ppCmdsCoC[gFrameIndex];
 		beginCmd(cmd);
+		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Depth of Field", true);
 		{
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Generate CoC Pass", true);
 
@@ -800,7 +818,7 @@ class CircularDOF: public IApp
 		{
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Downres Pass", true);
 
-			TextureBarrier textureBarriers[5] =
+			TextureBarrier textureBarriers[4] =
 			{
 				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDownresRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
@@ -830,30 +848,66 @@ class CircularDOF: public IApp
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
+		cmd = ppCmdsFilterNearCoC[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Near CoC Filter Pass", true);
+
+			TextureBarrier textureBarriers[2] =
+			{
+				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+
+			loadActions = {};
+			cmdBindRenderTargets(cmd, 1, &pFilteredNearCoC, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pFilteredNearCoC->mDesc.mWidth,
+				(float)pFilteredNearCoC->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pFilteredNearCoC->mDesc.mWidth,
+				pFilteredNearCoC->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineFilterNearCoC);
+			{
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
 		cmd = ppCmdsHorizontalDof[gFrameIndex];
 		beginCmd(cmd);
 		{
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Far Horizontal Blur Pass", true);
 
-			TextureBarrier textureBarriers[4] =
+			TextureBarrier textureBarriers[7] =
 			{
-				{ pHorizontalFarRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalFarRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalFarRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[3]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[4]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pHorizontalRenderTargets[5]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // CoC DownRes
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 4, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 7, textureBarriers);
 
 			loadActions = {};
 
-			cmdBindRenderTargets(cmd, 3, pHorizontalFarRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 6, pHorizontalRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pHorizontalFarRenderTargets[0]->mDesc.mWidth,
-				(float)pHorizontalFarRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pHorizontalFarRenderTargets[0]->mDesc.mWidth,
-				pHorizontalFarRenderTargets[0]->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pHorizontalRenderTargets[0]->mDesc.mWidth,
+				(float)pHorizontalRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pHorizontalRenderTargets[0]->mDesc.mWidth,
+				pHorizontalRenderTargets[0]->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHorizontalDOF);
 			{
@@ -877,9 +931,9 @@ class CircularDOF: public IApp
 			TextureBarrier textureBarriers[6] =
 			{
 				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pHorizontalFarRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHorizontalFarRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pHorizontalFarRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
@@ -932,6 +986,7 @@ class CircularDOF: public IApp
 			textureBarriers[0] = { pSwapChainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
 		}
+		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -1152,7 +1207,7 @@ class CircularDOF: public IApp
 
 	void AddShaders()
 	{
-		ShaderMacro    sceneShaderMacros[2] = 
+		ShaderMacro    sceneShaderMacros[2] =
 		{
 			{ "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_SPONZA_IMGS) },
 			{ "NUM_LIGHTS", eastl::string().sprintf("%i", gPointLights) }
@@ -1176,8 +1231,12 @@ class CircularDOF: public IApp
 		addShader(pRenderer, &shaderDesc, &pShaderGenCoc);
 
 		shaderDesc.mStages[0] = { "downsample.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "downsample.frag", ShaderMacroCoC, 2, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "downsample.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderDownres);
+
+		shaderDesc.mStages[0] = { "filterNearCoC.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "filterNearCoC.frag", NULL, 0, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderFilterNearCoC);
 
 		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "horizontalDof.frag", NULL, 0, FSR_SrcShaders };
@@ -1272,6 +1331,28 @@ class CircularDOF: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsDownres[1]);
 		}
 
+		// Downres
+		{
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
+			uint        numStaticSamplers = 2;
+			{
+				Shader* shaders[1] = { pShaderFilterNearCoC };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureFilterNearCoC);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureFilterNearCoC, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFilterNearCoC[0]);
+			setDesc = { pRootSignatureFilterNearCoC, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFilterNearCoC[1]);
+		}
+
 		// Far Horizontal DoF
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
@@ -1322,6 +1403,7 @@ class CircularDOF: public IApp
 		removeRootSignature(pRenderer, pRootSignatureScene);
 		removeRootSignature(pRenderer, pRootSignatureCoC);
 		removeRootSignature(pRenderer, pRootSignatureDownres);
+		removeRootSignature(pRenderer, pRootSignatureFilterNearCoC);
 		removeRootSignature(pRenderer, pRootSignatureHorizontalPass);
 		removeRootSignature(pRenderer, pRootSignatureCompositePass);
 
@@ -1333,6 +1415,8 @@ class CircularDOF: public IApp
 				removeDescriptorSet(pRenderer, pDescriptorSetsCoc[i]);
 			if (pDescriptorSetsDownres[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsDownres[i]);
+			if (pDescriptorSetsFilterNearCoC[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsFilterNearCoC[i]);
 			if (pDescriptorSetsHorizontalPass[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsHorizontalPass[i]);
 			if (pDescriptorSetsCompositePass[i])
@@ -1395,12 +1479,25 @@ class CircularDOF: public IApp
 			}
 		}
 
-		// 2-Component HorizontalDof (for far field)
+		// Near CoC Filter
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "NearCoCTexture";
+				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					params);
+			}
+		}
+
+		// 2-Component for Far Field and 1-Component for Near Field
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				DescriptorData params[3] = {};
-				params[0].pName = "TextureFar";
+				params[0].pName = "TextureColor";
 				params[0].ppTextures = &pRenderTargetColorDownres[i]->pTexture;
 				params[1].pName = "TextureCoC";
 				params[1].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
@@ -1416,7 +1513,7 @@ class CircularDOF: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[6] = {};
+				DescriptorData params[9] = {};
 				params[0].pName = "TextureColor";
 				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
 				params[1].pName = "TextureFarR";
@@ -1425,12 +1522,18 @@ class CircularDOF: public IApp
 				params[2].ppTextures = &pRenderTargetFarG[i]->pTexture;
 				params[3].pName = "TextureFarB";
 				params[3].ppTextures = &pRenderTargetFarB[i]->pTexture;
-				params[4].pName = "TextureCoC";
-				params[4].ppTextures = &pRenderTargetCoC[i]->pTexture;
-				params[5].pName = "UniformDOF";
-				params[5].ppBuffers = &pUniformBuffersDOF[i];
+				params[4].pName = "TextureNearR";
+				params[4].ppTextures = &pRenderTargetNearR[i]->pTexture;
+				params[5].pName = "TextureNearG";
+				params[5].ppTextures = &pRenderTargetNearG[i]->pTexture;
+				params[6].pName = "TextureNearB";
+				params[6].ppTextures = &pRenderTargetNearB[i]->pTexture;
+				params[7].pName = "TextureCoC";
+				params[7].ppTextures = &pRenderTargetCoC[i]->pTexture;
+				params[8].pName = "UniformDOF";
+				params[8].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 6,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 9,
 					params);
 			}
 		}
@@ -1523,12 +1626,30 @@ class CircularDOF: public IApp
 			}
 		}
 
-		// R, G, B Components
+		// Filter NearCoC
 		{
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue = clearVal;
-			rtDesc.mFormat = pRenderTargetHDR[0]->mDesc.mFormat; //Bracket Later
+			rtDesc.mFormat = TinyImageFormat_R8_UNORM;
+			rtDesc.mDepth = 1;
+			rtDesc.mWidth = mSettings.mWidth / 2;
+			rtDesc.mHeight = mSettings.mHeight / 2;
+			rtDesc.mSampleCount = SAMPLE_COUNT_1;
+			rtDesc.mSampleQuality = 0;
+
+			for (int i = 0; i < gImageCount; ++i)
+			{
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFilterNearCoC[i]);
+			}
+		}
+
+		// Far, R, G, B Components
+		{
+			RenderTargetDesc rtDesc = {};
+			rtDesc.mArraySize = 1;
+			rtDesc.mClearValue = clearVal;
+			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT; //Bracket Later
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = pRenderTargetColorDownres[0]->mDesc.mWidth;
 			rtDesc.mHeight =  pRenderTargetColorDownres[0]->mDesc.mHeight;
@@ -1543,6 +1664,25 @@ class CircularDOF: public IApp
 			}
 		}
 
+		// Near, R, G, B Components
+		{
+			RenderTargetDesc rtDesc = {};
+			rtDesc.mArraySize = 1;
+			rtDesc.mClearValue = clearVal;
+			rtDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
+			rtDesc.mDepth = 1;
+			rtDesc.mWidth = pRenderTargetColorDownres[0]->mDesc.mWidth;
+			rtDesc.mHeight =  pRenderTargetColorDownres[0]->mDesc.mHeight;
+			rtDesc.mSampleCount = SAMPLE_COUNT_1;
+			rtDesc.mSampleQuality = 0;
+
+			for (int i = 0; i < gImageCount; ++i)
+			{
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetNearR[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetNearG[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetNearB[i]);
+			}
+		}
 	}
 
 	void RemoveRenderTargets()
@@ -1693,20 +1833,42 @@ class CircularDOF: public IApp
 			addPipeline(pRenderer, &desc, &pPipelineDownres);
 		}
 
-		// 2-Component Horizontal Filter
+		// Filter Near CoC
 		{
-			TinyImageFormat formats[3] =
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = pDepthNone;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+			pipelineSettings.pColorFormats = &pRenderTargetFilterNearCoC[0]->mDesc.mFormat;
+			pipelineSettings.mSampleCount = pRenderTargetFilterNearCoC[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetFilterNearCoC[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureFilterNearCoC;
+			pipelineSettings.pShaderProgram = pShaderFilterNearCoC;
+			pipelineSettings.pRasterizerState = pRasterDefault;
+
+			addPipeline(pRenderer, &desc, &pPipelineFilterNearCoC);
+		}
+
+		// Horizontal Filter
+		{
+			TinyImageFormat formats[6] =
 			{
 				pRenderTargetFarR[0]->mDesc.mFormat,
 				pRenderTargetFarG[0]->mDesc.mFormat,
-				pRenderTargetFarB[0]->mDesc.mFormat
+				pRenderTargetFarB[0]->mDesc.mFormat,
+				pRenderTargetNearR[0]->mDesc.mFormat,
+				pRenderTargetNearG[0]->mDesc.mFormat,
+				pRenderTargetNearB[0]->mDesc.mFormat
 			};
 
 			PipelineDesc desc = {};
 			desc.mType = PIPELINE_TYPE_GRAPHICS;
 			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = 3;
+			pipelineSettings.mRenderTargetCount = 6;
 			pipelineSettings.pDepthState = pDepthNone;
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 			pipelineSettings.pColorFormats = formats;
@@ -1756,6 +1918,7 @@ class CircularDOF: public IApp
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHDR);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsCoC);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsDownress);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsFilterNearCoC);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
@@ -1765,6 +1928,7 @@ class CircularDOF: public IApp
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHDR);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsCoC);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsDownress);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsFilterNearCoC);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);

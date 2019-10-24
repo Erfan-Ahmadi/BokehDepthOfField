@@ -16,9 +16,12 @@ THE SOFTWARE.
 **/
 static const uint KERNEL_RADIUS = 8;
 static const uint KERNEL_COUNT = 17;
-static const float4 Kernel0BracketsRealXY_ImZW = float4(-0.038708,0.943062,-0.025574,0.660892);
-static const float2 Kernel0Weights_RealX_ImY = float2(0.411259,-0.548794);
-static const float4 Kernel0_RealX_ImY_RealZ_ImW[] = {
+
+// 2-Component
+
+static const float4 Kernel0BracketsRealXY_ImZW_2 = float4(-0.038708,0.943062,-0.025574,0.660892);
+static const float2 Kernel0Weights_RealX_ImY_2 = float2(0.411259,-0.548794);
+static const float4 Kernel0_RealX_ImY_RealZ_ImW_2[] = {
         float4(/*XY: Non Bracketed*/0.014096,-0.022658,/*Bracketed WZ:*/0.055991,0.004413),
         float4(/*XY: Non Bracketed*/-0.020612,-0.025574,/*Bracketed WZ:*/0.019188,0.000000),
         float4(/*XY: Non Bracketed*/-0.038708,0.006957,/*Bracketed WZ:*/0.000000,0.049223),
@@ -37,9 +40,9 @@ static const float4 Kernel0_RealX_ImY_RealZ_ImW[] = {
         float4(/*XY: Non Bracketed*/-0.020612,-0.025574,/*Bracketed WZ:*/0.019188,0.000000),
         float4(/*XY: Non Bracketed*/0.014096,-0.022658,/*Bracketed WZ:*/0.055991,0.004413)
 };
-static const float4 Kernel1BracketsRealXY_ImZW = float4(0.000115,0.559524,0.000000,0.178226);
-static const float2 Kernel1Weights_RealX_ImY = float2(0.513282,4.561110);
-static const float4 Kernel1_RealX_ImY_RealZ_ImW[] = {
+static const float4 Kernel1BracketsRealXY_ImZW_2 = float4(0.000115,0.559524,0.000000,0.178226);
+static const float2 Kernel1Weights_RealX_ImY_2 = float2(0.513282,4.561110);
+static const float4 Kernel1_RealX_ImY_RealZ_ImW_2[] = {
         float4(/*XY: Non Bracketed*/0.000115,0.009116,/*Bracketed WZ:*/0.000000,0.051147),
         float4(/*XY: Non Bracketed*/0.005324,0.013416,/*Bracketed WZ:*/0.009311,0.075276),
         float4(/*XY: Non Bracketed*/0.013753,0.016519,/*Bracketed WZ:*/0.024376,0.092685),
@@ -59,6 +62,31 @@ static const float4 Kernel1_RealX_ImY_RealZ_ImW[] = {
         float4(/*XY: Non Bracketed*/0.000115,0.009116,/*Bracketed WZ:*/0.000000,0.051147)
 };
 
+// 1-Component
+
+static const float4 Kernel0BracketsRealXY_ImZW_1 = float4(-0.001442,0.672786,0.000000,0.311371);
+static const float2 Kernel0Weights_RealX_ImY_1 = float2(0.767583,1.862321);
+static const float4 Kernel0_RealX_ImY_RealZ_ImW_1[] = {
+        float4(/*XY: Non Bracketed*/-0.001442,0.026656,/*Bracketed WZ:*/0.000000,0.085609),
+        float4(/*XY: Non Bracketed*/0.010488,0.030945,/*Bracketed WZ:*/0.017733,0.099384),
+        float4(/*XY: Non Bracketed*/0.023771,0.030830,/*Bracketed WZ:*/0.037475,0.099012),
+        float4(/*XY: Non Bracketed*/0.036356,0.026770,/*Bracketed WZ:*/0.056181,0.085976),
+        float4(/*XY: Non Bracketed*/0.046822,0.020140,/*Bracketed WZ:*/0.071737,0.064680),
+        float4(/*XY: Non Bracketed*/0.054555,0.012687,/*Bracketed WZ:*/0.083231,0.040745),
+        float4(/*XY: Non Bracketed*/0.059606,0.006074,/*Bracketed WZ:*/0.090738,0.019507),
+        float4(/*XY: Non Bracketed*/0.062366,0.001584,/*Bracketed WZ:*/0.094841,0.005086),
+        float4(/*XY: Non Bracketed*/0.063232,0.000000,/*Bracketed WZ:*/0.096128,0.000000),
+        float4(/*XY: Non Bracketed*/0.062366,0.001584,/*Bracketed WZ:*/0.094841,0.005086),
+        float4(/*XY: Non Bracketed*/0.059606,0.006074,/*Bracketed WZ:*/0.090738,0.019507),
+        float4(/*XY: Non Bracketed*/0.054555,0.012687,/*Bracketed WZ:*/0.083231,0.040745),
+        float4(/*XY: Non Bracketed*/0.046822,0.020140,/*Bracketed WZ:*/0.071737,0.064680),
+        float4(/*XY: Non Bracketed*/0.036356,0.026770,/*Bracketed WZ:*/0.056181,0.085976),
+        float4(/*XY: Non Bracketed*/0.023771,0.030830,/*Bracketed WZ:*/0.037475,0.099012),
+        float4(/*XY: Non Bracketed*/0.010488,0.030945,/*Bracketed WZ:*/0.017733,0.099384),
+        float4(/*XY: Non Bracketed*/-0.001442,0.026656,/*Bracketed WZ:*/0.000000,0.085609)
+};
+
+
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float	maxRadius;
@@ -77,7 +105,10 @@ Texture2D		TextureCoC		: register(t0, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureFarR		: register(t1, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureFarG		: register(t2, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureFarB		: register(t3, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureColor	: register(t4, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearR	: register(t4, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearG	: register(t5, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearB	: register(t6, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureColor	: register(t7, UPDATE_FREQ_PER_FRAME);
 
 float2 multComplex(float2 p, float2 q)
 {
@@ -89,49 +120,77 @@ float4 main(VSOutput input) : SV_TARGET
 	uint w, h;
 	TextureFarR.GetDimensions(w, h);
 	float2 step = 1.0f / float2(w, h);
-	
-    float4 valR = float4(0, 0, 0, 0);
-    float4 valG = float4(0, 0, 0, 0);
-    float4 valB = float4(0, 0, 0, 0);
-	
+
 	float4 color = sqrt(TextureColor.Sample(samplerLinear, input.UV));
 	
-	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
-	
-	if(cocValue.g == 0)
-		return color;
+	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg * maxRadius;
 
-	float filterRadiusFar = TextureCoC.Sample(samplerLinear, input.UV).g * maxRadius;
+	float4 filteredColorFar = float4(0, 0, 0, 0);
+	float4 filteredColorNear = float4(0, 0, 0, 0);
+
+	if(cocValue.g != 0)
+	{	
+		float4 valR = float4(0, 0, 0, 0);
+		float4 valG = float4(0, 0, 0, 0);
+		float4 valB = float4(0, 0, 0, 0);
 	
-	for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
-    {
-		int index = i - KERNEL_RADIUS;
-        float2 coords = input.UV + step * float2(0.0, float(index)) * filterRadiusFar;
-        float4 imageTexelR = TextureFarR.Sample(samplerLinear, coords);  
-        float4 imageTexelG = TextureFarG.Sample(samplerLinear, coords);  
-        float4 imageTexelB = TextureFarB.Sample(samplerLinear, coords);  
+		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
+		{
+			int index = i - KERNEL_RADIUS;
+			float2 coords = input.UV + step * float2(0.0, float(index)) * cocValue.g;
+			float4 imageTexelR = TextureFarR.Sample(samplerLinear, coords);  
+			float4 imageTexelG = TextureFarG.Sample(samplerLinear, coords);  
+			float4 imageTexelB = TextureFarB.Sample(samplerLinear, coords);  
         
-        float2 c0 = Kernel0_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
-        float2 c1 = Kernel1_RealX_ImY_RealZ_ImW[index + KERNEL_RADIUS].xy;
+			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
+			float2 c1 = Kernel1_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 
-        valR.xy += multComplex(imageTexelR.xy, c0);
-        valR.zw += multComplex(imageTexelR.zw, c1);
+			valR.xy += multComplex(imageTexelR.xy, c0);
+			valR.zw += multComplex(imageTexelR.zw, c1);
 
-        valG.xy += multComplex(imageTexelG.xy, c0);
-        valG.zw += multComplex(imageTexelG.zw, c1);
+			valG.xy += multComplex(imageTexelG.xy, c0);
+			valG.zw += multComplex(imageTexelG.zw, c1);
 
-        valB.xy += multComplex(imageTexelB.xy, c0); 
-        valB.zw += multComplex(imageTexelB.zw, c1);   
-    }
-
-    float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY) + dot(valR.zw, Kernel1Weights_RealX_ImY);
-    float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY) + dot(valG.zw, Kernel1Weights_RealX_ImY);
-    float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY) + dot(valB.zw, Kernel1Weights_RealX_ImY);
-    float4 filteredColor = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+			valB.xy += multComplex(imageTexelB.xy, c0); 
+			valB.zw += multComplex(imageTexelB.zw, c1);   
+		}
 	
-	//return lerp(color, filteredColor, saturate((cocValue.g) * blend));
+		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_2) + dot(valR.zw, Kernel1Weights_RealX_ImY_2);
+		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_2) + dot(valG.zw, Kernel1Weights_RealX_ImY_2);
+		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_2) + dot(valB.zw, Kernel1Weights_RealX_ImY_2);
+		filteredColorFar = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+	}
+	else if(cocValue.r != 0)
+	{	
+		float2 valR = float4(0, 0, 0, 0);
+		float2 valG = float4(0, 0, 0, 0);
+		float2 valB = float4(0, 0, 0, 0);
+	
+		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
+		{
+			int index = i - KERNEL_RADIUS;
+			float2 coords = input.UV + step * float2(0.0, float(index)) * cocValue.r;
+			float4 imageTexelR = TextureNearR.Sample(samplerLinear, coords);  
+			float4 imageTexelG = TextureNearG.Sample(samplerLinear, coords);  
+			float4 imageTexelB = TextureNearB.Sample(samplerLinear, coords);  
+        
+			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_1[index + KERNEL_RADIUS].xy;
 
-	if(cocValue.g < 0.05f)
-		return color;
-	return lerp(color, filteredColor, blend);
+			valR += multComplex(imageTexelR.xy, c0);
+			valG += multComplex(imageTexelG.xy, c0);
+			valB += multComplex(imageTexelB.xy, c0);  
+		}
+	
+		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_1);
+		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_1);
+		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_1);
+		filteredColorNear = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+	}
+
+	if(cocValue.g > 0.05f)
+		color = lerp(color, filteredColorFar, blend);
+	if(cocValue.r > 0.05f)
+		color = lerp(color, filteredColorNear, blend);
+
+	return color;
 }
