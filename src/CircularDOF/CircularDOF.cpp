@@ -804,7 +804,7 @@ class CircularDOF: public IApp
 
 			cmdBindPipeline(cmd, pPipelineCoC);
 			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_NONE]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
@@ -839,7 +839,7 @@ class CircularDOF: public IApp
 
 			cmdBindPipeline(cmd, pPipelineDownres);
 			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsDownres[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsDownres[DESCRIPTOR_UPDATE_FREQ_NONE]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsDownres[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
@@ -872,7 +872,7 @@ class CircularDOF: public IApp
 
 			cmdBindPipeline(cmd, pPipelineFilterNearCoC);
 			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
@@ -884,9 +884,9 @@ class CircularDOF: public IApp
 		cmd = ppCmdsHorizontalDof[gFrameIndex];
 		beginCmd(cmd);
 		{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Far Horizontal Blur Pass", true);
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Horizontal Blur Pass", true);
 
-			TextureBarrier textureBarriers[7] =
+			TextureBarrier textureBarriers[8] =
 			{
 				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
@@ -895,9 +895,10 @@ class CircularDOF: public IApp
 				{ pHorizontalRenderTargets[4]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pHorizontalRenderTargets[5]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // CoC DownRes
+				{ pDownresRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // Color DownRes
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 7, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 8, textureBarriers);
 
 			loadActions = {};
 
@@ -911,7 +912,7 @@ class CircularDOF: public IApp
 
 			cmdBindPipeline(cmd, pPipelineHorizontalDOF);
 			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_NONE]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
@@ -928,12 +929,15 @@ class CircularDOF: public IApp
 
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
 
-			TextureBarrier textureBarriers[6] =
+			TextureBarrier textureBarriers[9] =
 			{
 				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pHorizontalRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHorizontalRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHorizontalRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[3]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[4]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pHorizontalRenderTargets[5]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
@@ -951,7 +955,7 @@ class CircularDOF: public IApp
 
 			cmdBindPipeline(cmd, pPipelineComposite);
 			{
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_NONE]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}

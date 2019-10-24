@@ -190,7 +190,7 @@ float4 main(VSOutput input) : SV_TARGET
 	if(cocValue.g > 0.05f)
 		color = lerp(color, filteredColorFar, blend);
 	if(cocValue.r > 0.05f)
-		color = lerp(color, filteredColorNear, blend);
+		color = lerp(color, filteredColorNear, 0.00001f);
 
 	return color;
 }
