@@ -131,15 +131,18 @@ PSOut main(VSOutput input) : SV_TARGET
 		float4 valG = float4(0, 0, 0, 0);
 		float4 valB = float4(0, 0, 0, 0);
 
+		float total = 0;
 		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
 		{
 			int index = i - KERNEL_RADIUS;
-			float2 coords = input.UV + step * float2(float(index), 0) * cocValue.g;
+			float2 coords = input.UV + step * float2(float(index), 0) * maxRadius;
+			
+			float cocValueSample = TextureCoC.Sample(samplerPoint, coords).g;
 
 			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 			float2 c1 = Kernel1_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 
-			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb;
+			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb / cocValueSample;
 
 			valR += float4(texel.r * c0, texel.r * c1);
 			valG += float4(texel.g * c0, texel.g * c1);

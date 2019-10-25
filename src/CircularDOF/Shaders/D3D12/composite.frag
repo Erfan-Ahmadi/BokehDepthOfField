@@ -137,7 +137,10 @@ float4 main(VSOutput input) : SV_TARGET
 		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
 		{
 			int index = i - KERNEL_RADIUS;
-			float2 coords = input.UV + step * float2(0.0, float(index)) * cocValue.g;
+			float2 coords = input.UV + step * float2(0.0, float(index)) * maxRadius;
+			
+			float cocValueSample = TextureCoC.Sample(samplerPoint, coords).g;
+
 			float4 imageTexelR = TextureFarR.Sample(samplerLinear, coords);  
 			float4 imageTexelG = TextureFarG.Sample(samplerLinear, coords);  
 			float4 imageTexelB = TextureFarB.Sample(samplerLinear, coords);  
@@ -190,7 +193,7 @@ float4 main(VSOutput input) : SV_TARGET
 	if(cocValue.g > 0.05f)
 		color = lerp(color, filteredColorFar, blend);
 	if(cocValue.r > 0.05f)
-		color = lerp(color, filteredColorNear, 0.00001f);
+		color = lerp(color, filteredColorNear, 0.0f);
 
 	return color;
 }
