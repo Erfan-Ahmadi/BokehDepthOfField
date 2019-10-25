@@ -856,7 +856,7 @@ class CircularDOF: public IApp
 			TextureBarrier textureBarriers[2] =
 			{
 				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
@@ -942,7 +942,7 @@ class CircularDOF: public IApp
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 6, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 9, textureBarriers);
 
 			loadActions = {};
 			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
