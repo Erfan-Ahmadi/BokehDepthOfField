@@ -19,9 +19,9 @@ PSOut main(VSOutput input) : SV_TARGET
 {
 	PSOut output;
 
-	output.DownresCoC = TextureCoC.Sample(samplerLinear, input.UV).rg;
+	output.DownresCoC = TextureCoC.Sample(samplerPoint, input.UV).rg;
 	
-	output.DownresColor = TextureColor.Sample(samplerLinear, input.UV) * output.DownresCoC.g;
+	output.DownresColor = TextureColor.Sample(samplerLinear, input.UV);
 
     return output;
 }

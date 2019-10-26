@@ -1293,9 +1293,9 @@ class CircularDOF: public IApp
 
 		// CoC
 		{
-			const char* pStaticSamplerNames [] = { "samplerLinear" };
-			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge };
-			uint        numStaticSamplers = 1;
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
+			uint        numStaticSamplers = 2;
 			{
 				Shader* shaders[1] = { pShaderGenCoc };
 				RootSignatureDesc rootDesc = {};
@@ -1503,10 +1503,10 @@ class CircularDOF: public IApp
 				DescriptorData params[3] = {};
 				params[0].pName = "TextureColor";
 				params[0].ppTextures = &pRenderTargetColorDownres[i]->pTexture;
-				params[1].pName = "TextureCoC";
-				params[1].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
-				params[2].pName = "UniformDOF";
-				params[2].ppBuffers = &pUniformBuffersDOF[i];
+				params[1].pName = "UniformDOF";
+				params[1].ppBuffers = &pUniformBuffersDOF[i];
+				params[2].pName = "TextureCoC";
+				params[2].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
 					pDescriptorSetsHorizontalPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 3,
 					params);
@@ -1520,22 +1520,22 @@ class CircularDOF: public IApp
 				DescriptorData params[9] = {};
 				params[0].pName = "TextureColor";
 				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
-				params[1].pName = "TextureFarR";
-				params[1].ppTextures = &pRenderTargetFarR[i]->pTexture;
-				params[2].pName = "TextureFarG";
-				params[2].ppTextures = &pRenderTargetFarG[i]->pTexture;
-				params[3].pName = "TextureFarB";
-				params[3].ppTextures = &pRenderTargetFarB[i]->pTexture;
-				params[4].pName = "TextureNearR";
-				params[4].ppTextures = &pRenderTargetNearR[i]->pTexture;
-				params[5].pName = "TextureNearG";
-				params[5].ppTextures = &pRenderTargetNearG[i]->pTexture;
-				params[6].pName = "TextureNearB";
-				params[6].ppTextures = &pRenderTargetNearB[i]->pTexture;
-				params[7].pName = "TextureCoC";
-				params[7].ppTextures = &pRenderTargetCoC[i]->pTexture;
-				params[8].pName = "UniformDOF";
-				params[8].ppBuffers = &pUniformBuffersDOF[i];
+				params[1].pName = "UniformDOF";
+				params[1].ppBuffers = &pUniformBuffersDOF[i];
+				params[2].pName = "TextureFarR";
+				params[2].ppTextures = &pRenderTargetFarR[i]->pTexture;
+				params[3].pName = "TextureFarG";
+				params[3].ppTextures = &pRenderTargetFarG[i]->pTexture;
+				params[4].pName = "TextureFarB";
+				params[4].ppTextures = &pRenderTargetFarB[i]->pTexture;
+				params[5].pName = "TextureCoC";
+				params[5].ppTextures = &pRenderTargetCoC[i]->pTexture;
+				params[6].pName = "TextureNearR";
+				params[6].ppTextures = &pRenderTargetNearR[i]->pTexture;
+				params[7].pName = "TextureNearG";
+				params[7].ppTextures = &pRenderTargetNearG[i]->pTexture;
+				params[8].pName = "TextureNearB";
+				params[8].ppTextures = &pRenderTargetNearB[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
 					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 9,
 					params);

@@ -5,6 +5,7 @@ struct VSOutput
 };
 
 SamplerState	samplerLinear	: register(s0);
+SamplerState	samplerPoint	: register(s0);
 Texture2D		DepthTexture	: register(t0, UPDATE_FREQ_PER_FRAME);
 
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
@@ -39,7 +40,7 @@ PSOut main(VSOutput input) : SV_TARGET
 {
 	PSOut output;
 
-	float depth = DepthTexture.Sample(samplerLinear, input.UV).x;
+	float depth = DepthTexture.Sample(samplerPoint, input.UV).x;
 
 	float depth_linearized = LinearizeDepth(depth);
 

@@ -137,12 +137,18 @@ PSOut main(VSOutput input) : SV_TARGET
 			int index = i - KERNEL_RADIUS;
 			float2 coords = input.UV + step * float2(float(index), 0) * maxRadius;
 			
-			float cocValueSample = TextureCoC.Sample(samplerPoint, coords).g;
-
 			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 			float2 c1 = Kernel1_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 
-			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb / cocValueSample;
+			float cocValueSample = TextureCoC.Sample(samplerPoint, coords).g;
+
+			if(cocValueSample == 0)
+			{
+				coords = input.UV;
+				cocValueSample = cocValue.g;
+			}
+
+			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb;
 
 			valR += float4(texel.r * c0, texel.r * c1);
 			valG += float4(texel.g * c0, texel.g * c1);
@@ -154,32 +160,6 @@ PSOut main(VSOutput input) : SV_TARGET
 		output.TextureFarB = valB;
 		return output;
 	}
-	else if(cocValue.r != 0)
-	{
-		float2 valR = float4(0, 0, 0, 0);
-		float2 valG = float4(0, 0, 0, 0);
-		float2 valB = float4(0, 0, 0, 0);
-
-		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
-		{
-			int index = i - KERNEL_RADIUS;
-			float2 coords = input.UV + step * float2(float(index), 0) * cocValue.r;
-
-			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_1[index + KERNEL_RADIUS].xy;
-
-			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb;
-
-			valR += float2(texel.r * c0);
-			valG += float2(texel.g * c0);
-			valB += float2(texel.b * c0);
-		}
-
-		output.TextureNearR = valR;
-		output.TextureNearG = valG;
-		output.TextureNearB = valB;
-		return output;
-	}
-
 	
 	output.TextureFarR = float4(0, 0, 0, 0);
 	output.TextureFarG = float4(0, 0, 0, 0);
