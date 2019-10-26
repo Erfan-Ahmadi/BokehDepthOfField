@@ -1079,9 +1079,9 @@ class CircularDOF: public IApp
 		samplerDesc = { FILTER_NEAREST,
 						FILTER_NEAREST,
 						MIPMAP_MODE_NEAREST,
-						ADDRESS_MODE_REPEAT,
-						ADDRESS_MODE_REPEAT,
-						ADDRESS_MODE_REPEAT };
+						ADDRESS_MODE_CLAMP_TO_EDGE,
+						ADDRESS_MODE_CLAMP_TO_EDGE,
+						ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerPoint);
 	}
 
@@ -1518,18 +1518,18 @@ class CircularDOF: public IApp
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				DescriptorData params[9] = {};
-				params[0].pName = "TextureColor";
-				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
-				params[1].pName = "UniformDOF";
-				params[1].ppBuffers = &pUniformBuffersDOF[i];
-				params[2].pName = "TextureFarR";
-				params[2].ppTextures = &pRenderTargetFarR[i]->pTexture;
-				params[3].pName = "TextureFarG";
-				params[3].ppTextures = &pRenderTargetFarG[i]->pTexture;
-				params[4].pName = "TextureFarB";
-				params[4].ppTextures = &pRenderTargetFarB[i]->pTexture;
-				params[5].pName = "TextureCoC";
-				params[5].ppTextures = &pRenderTargetCoC[i]->pTexture;
+				params[0].pName = "TextureCoC";
+				params[0].ppTextures = &pRenderTargetCoC[i]->pTexture;
+				params[1].pName = "TextureColor";
+				params[1].ppTextures = &pRenderTargetHDR[i]->pTexture;
+				params[2].pName = "UniformDOF";
+				params[2].ppBuffers = &pUniformBuffersDOF[i];
+				params[3].pName = "TextureFarR";
+				params[3].ppTextures = &pRenderTargetFarR[i]->pTexture;
+				params[4].pName = "TextureFarG";
+				params[4].ppTextures = &pRenderTargetFarG[i]->pTexture;
+				params[5].pName = "TextureFarB";
+				params[5].ppTextures = &pRenderTargetFarB[i]->pTexture;
 				params[6].pName = "TextureNearR";
 				params[6].ppTextures = &pRenderTargetNearR[i]->pTexture;
 				params[7].pName = "TextureNearG";
@@ -1555,7 +1555,7 @@ class CircularDOF: public IApp
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue.depth = 1.0f;
 			rtDesc.mClearValue.stencil = 0;
-			rtDesc.mFormat = TinyImageFormat_D24_UNORM_S8_UINT;
+			rtDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = mSettings.mWidth;
 			rtDesc.mHeight = mSettings.mHeight;
@@ -1603,8 +1603,8 @@ class CircularDOF: public IApp
 			rtDesc.mClearValue = clearVal;
 			rtDesc.mFormat = pRenderTargetCoC[0]->mDesc.mFormat;
 			rtDesc.mDepth = 1;
-			rtDesc.mWidth = mSettings.mWidth / 2;
-			rtDesc.mHeight = mSettings.mHeight / 2;
+			rtDesc.mWidth = mSettings.mWidth;
+			rtDesc.mHeight = mSettings.mHeight;
 			rtDesc.mSampleCount = SAMPLE_COUNT_1;
 			rtDesc.mSampleQuality = 0;
 
@@ -1619,8 +1619,8 @@ class CircularDOF: public IApp
 			rtDesc.mClearValue = clearVal;
 			rtDesc.mFormat = pRenderTargetHDR[0]->mDesc.mFormat;
 			rtDesc.mDepth = 1;
-			rtDesc.mWidth = mSettings.mWidth / 2;
-			rtDesc.mHeight = mSettings.mHeight / 2;
+			rtDesc.mWidth = mSettings.mWidth;
+			rtDesc.mHeight = mSettings.mHeight;
 			rtDesc.mSampleCount = SAMPLE_COUNT_1;
 			rtDesc.mSampleQuality = 0;
 

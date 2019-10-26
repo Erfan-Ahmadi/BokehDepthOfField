@@ -5,7 +5,7 @@ struct VSOutput
 };
 
 SamplerState	samplerLinear	: register(s0);
-SamplerState	samplerPoint	: register(s0);
+SamplerState	samplerPoint	: register(s1);
 Texture2D		DepthTexture	: register(t0, UPDATE_FREQ_PER_FRAME);
 
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
@@ -34,7 +34,6 @@ float DepthNDCToView(float depth_ndc)
 {
 	return -projParams.y / (depth_ndc + projParams.x);
 }
-
 
 PSOut main(VSOutput input) : SV_TARGET
 {

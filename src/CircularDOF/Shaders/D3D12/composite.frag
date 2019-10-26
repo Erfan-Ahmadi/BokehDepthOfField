@@ -145,6 +145,12 @@ float4 main(VSOutput input) : SV_TARGET
 			float4 imageTexelG = TextureFarG.Sample(samplerLinear, coords);  
 			float4 imageTexelB = TextureFarB.Sample(samplerLinear, coords);  
         
+			if(cocValueSample == 0)
+			{
+				coords = input.UV;
+				cocValueSample = cocValue.g;
+			}
+
 			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 			float2 c1 = Kernel1_RealX_ImY_RealZ_ImW_2[index + KERNEL_RADIUS].xy;
 
@@ -190,8 +196,8 @@ float4 main(VSOutput input) : SV_TARGET
 		filteredColorNear = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
 	}
 
-	if(cocValue.g > 0.05f)
-		color = lerp(color, filteredColorFar, blend);
+	color = lerp(color, filteredColorFar, saturate(cocValue.g * 4));
+
 	if(cocValue.r > 0.05f)
 		color = lerp(color, filteredColorNear, 0.0f);
 
