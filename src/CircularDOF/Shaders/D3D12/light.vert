@@ -21,7 +21,7 @@ struct VSOutput
 VSOutput main(VSInput input)
 {
 	VSOutput result;
-	float4 worldPos = float4(input.InstancePosition + 4 * input.Position * float3(4, 1, 1), 1.0f); 
+	float4 worldPos = float4(input.InstancePosition + 4 * input.Position * float3(15, 1, 1), 1.0f); 
 	result.Position = mul(proj, mul(view,  worldPos));
 	result.Color = saturate(input.InstanceColor);
 	return result;

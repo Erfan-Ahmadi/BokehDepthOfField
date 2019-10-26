@@ -1619,8 +1619,8 @@ class CircularDOF: public IApp
 			rtDesc.mClearValue = clearVal;
 			rtDesc.mFormat = pRenderTargetHDR[0]->mDesc.mFormat;
 			rtDesc.mDepth = 1;
-			rtDesc.mWidth = mSettings.mWidth;
-			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mWidth = pRenderTargetCoCDowres[0]->mDesc.mWidth;
+			rtDesc.mHeight = pRenderTargetCoCDowres[0]->mDesc.mHeight;
 			rtDesc.mSampleCount = SAMPLE_COUNT_1;
 			rtDesc.mSampleQuality = 0;
 
