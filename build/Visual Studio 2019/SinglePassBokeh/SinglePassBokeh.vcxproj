@@ -30,8 +30,13 @@
     <ClCompile Include="..\..\..\src\SinglePassBokeh\SinglePassBokeh.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\basic.frag" />
-    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\basic.vert" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\dof\dof.frag" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\dof\genCoc.frag" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\dof\image.vert" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\meshes\basic.frag" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\meshes\basic.vert" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\meshes\light.frag" />
+    <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\meshes\light.vert" />
     <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\profile.frag" />
     <None Include="..\..\..\src\SinglePassBokeh\Shaders\D3D12\profile.vert" />
   </ItemGroup>
