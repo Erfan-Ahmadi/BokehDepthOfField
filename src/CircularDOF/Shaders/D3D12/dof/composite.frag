@@ -169,7 +169,7 @@ float4 main(VSOutput input) : SV_TARGET
 		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_2) + dot(valR.zw, Kernel1Weights_RealX_ImY_2);
 		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_2) + dot(valG.zw, Kernel1Weights_RealX_ImY_2);
 		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_2) + dot(valB.zw, Kernel1Weights_RealX_ImY_2);
-		filteredColorFar = float4(sqrt(float3(redChannel, greenChannel, blueChannel) / sumWeights), w);
+		filteredColorFar = float4((float3(redChannel, greenChannel, blueChannel) / sumWeights), w);
 	}
 	else if(cocValue.r != 0)
 	{	
@@ -198,8 +198,8 @@ float4 main(VSOutput input) : SV_TARGET
 		filteredColorNear = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
 	}
 	
-	//if(cocValue.g > 0.0)
-		color = lerp(color, filteredColorFar, saturate(cocValue.g * 30));
+	color = lerp(color, filteredColorFar, saturate(cocValue.g * 4));
+
 	if(cocValue.r > 0.99f)
 		color = lerp(color, filteredColorNear, 0.0f);
 
