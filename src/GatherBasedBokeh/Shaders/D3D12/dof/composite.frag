@@ -29,7 +29,7 @@ float2 multComplex(float2 p, float2 q)
 float4 main(VSOutput input) : SV_TARGET
 {	
 	uint w, h;
-	TextureFarR.GetDimensions(w, h);
+	TextureFar.GetDimensions(w, h);
 	float2 step = 1.0f / float2(w, h);
 
 	float4 color = TextureColor.Sample(samplerLinear, input.UV);

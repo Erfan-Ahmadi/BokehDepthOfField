@@ -900,6 +900,7 @@ class GatherBasedBokeh: public IApp
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
 			loadActions = {};
+			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 1, &pDownresRenderTargets[0], NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
@@ -965,6 +966,7 @@ class GatherBasedBokeh: public IApp
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
 			loadActions = {};
+			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 1, &pDownresRenderTargets[0], NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
@@ -1001,13 +1003,13 @@ class GatherBasedBokeh: public IApp
 
 			loadActions = {};
 
-			cmdBindRenderTargets(cmd, 3, pDownresRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 2, pComputationRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pDownresRenderTargets[0]->mDesc.mWidth,
-				(float)pDownresRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pDownresRenderTargets[0]->mDesc.mWidth,
-				pDownresRenderTargets[0]->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pComputationRenderTargets[0]->mDesc.mWidth,
+				(float)pComputationRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pComputationRenderTargets[0]->mDesc.mWidth,
+				pComputationRenderTargets[0]->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineComputation);
 			{
@@ -1017,7 +1019,7 @@ class GatherBasedBokeh: public IApp
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		}
 		endCmd(cmd);
-		//allCmds.push_back(cmd);
+		allCmds.push_back(cmd);
 
 		cmd = ppCmdsComposite[gFrameIndex];
 		beginCmd(cmd);
@@ -1089,7 +1091,6 @@ class GatherBasedBokeh: public IApp
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
-		// Submit Second Pass Command Buffer
 		queueSubmit(pGraphicsQueue, allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
@@ -1671,7 +1672,7 @@ class GatherBasedBokeh: public IApp
 				params[1].pName = "TextureColor";
 				params[1].ppTextures = &pRenderTargetColorDownres[i]->pTexture;
 				params[2].pName = "TextureColorMulFar";
-				params[2].ppTextures = &pRenderTargetColorDownres[i]->pTexture;
+				params[2].ppTextures = &pRenderTargetMulFarDownres[i]->pTexture;
 				params[3].pName = "UniformDOF";
 				params[3].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
@@ -1699,9 +1700,9 @@ class GatherBasedBokeh: public IApp
 				params[5].ppTextures = &pRenderTargetNear[i]->pTexture;
 				params[6].pName = "UniformDOF";
 				params[6].ppBuffers = &pUniformBuffersDOF[i];
-				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 7,
-					params);
+				//updateDescriptorSet(pRenderer, i,
+				//	pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 7,
+				//	params);
 			}
 		}
 	}
