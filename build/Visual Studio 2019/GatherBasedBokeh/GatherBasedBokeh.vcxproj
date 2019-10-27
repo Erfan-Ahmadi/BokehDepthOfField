@@ -32,7 +32,7 @@
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\downsample.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\maxfilterNearCoC.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\genCoc.frag" />
-    <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\horizontalDof.frag" />
+    <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\computation.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\image.vert" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\meshes\basic.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\meshes\basic.vert" />

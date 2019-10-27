@@ -24,9 +24,6 @@
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\genCoc.frag">
       <Filter>Shaders\D3D12\dof</Filter>
     </None>
-    <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\horizontalDof.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\image.vert">
       <Filter>Shaders\D3D12\dof</Filter>
     </None>
@@ -58,6 +55,9 @@
       <Filter>Shaders\D3D12\dof</Filter>
     </None>
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\boxfilterNearCoC.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\computation.frag">
       <Filter>Shaders\D3D12\dof</Filter>
     </None>
   </ItemGroup>
