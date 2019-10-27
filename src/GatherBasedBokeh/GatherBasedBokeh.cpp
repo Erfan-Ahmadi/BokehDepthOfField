@@ -726,10 +726,15 @@ class GatherBasedBokeh: public IApp
 
 		RenderTarget* pComputationRenderTargets[2] =
 		{
-			pRenderTargetFar[gFrameIndex],
-			pRenderTargetNear[gFrameIndex]
+			pRenderTargetNear[gFrameIndex],
+			pRenderTargetFar[gFrameIndex]
 		};
 
+		RenderTarget* pFillingRenderTargets[2] =
+		{
+			pRenderTargetNearFilled[gFrameIndex],
+			pRenderTargetFarFilled[gFrameIndex]
+		};
 
 		Cmd* cmd = ppCmdsHDR[gFrameIndex];
 		beginCmd(cmd);
@@ -1025,6 +1030,43 @@ class GatherBasedBokeh: public IApp
 			cmdBindPipeline(cmd, pPipelineComputation);
 			{
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsComputationPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsFilling[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Filling Pass", true);
+
+			TextureBarrier textureBarriers[6] =
+			{
+				{ pFillingRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pFillingRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pFilteredNearCoCFinal->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pComputationRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pComputationRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 6, textureBarriers);
+
+			loadActions = {};
+
+			cmdBindRenderTargets(cmd, 2, pFillingRenderTargets, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pFillingRenderTargets[0]->mDesc.mWidth,
+				(float)pFillingRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pFillingRenderTargets[0]->mDesc.mWidth,
+				pFillingRenderTargets[0]->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineFilling);
+			{
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsFillingPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -1809,12 +1851,12 @@ class GatherBasedBokeh: public IApp
 				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
 				params[1].pName = "TextureNearCoCBlur";
 				params[1].ppTextures = &pRenderTargetFilterNearCoCFinal[i]->pTexture;
-				params[2].pName = "TextureTextureFar";
+				params[2].pName = "TextureFar";
 				params[2].ppTextures = &pRenderTargetFar[i]->pTexture;
 				params[3].pName = "TextureNear";
-				params[3].ppTextures = &pRenderTargetNears[i]->pTexture;
+				params[3].ppTextures = &pRenderTargetNear[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsComputationPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 4,
+					pDescriptorSetsFillingPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 4,
 					params);
 			}
 		}
@@ -1828,19 +1870,17 @@ class GatherBasedBokeh: public IApp
 				params[0].ppTextures = &pRenderTargetHDR[i]->pTexture;
 				params[1].pName = "TextureCoC";
 				params[1].ppTextures = &pRenderTargetCoC[i]->pTexture;
-				params[2].pName = "TextureCoCDownres";
+				params[2].pName = "TextureCoC_x4";
 				params[2].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
 				params[3].pName = "TextureNearCoCBlur";
-				params[3].ppTextures = &pRenderTargetFilterNearCoC[i]->pTexture;
-				params[4].pName = "TextureFar";
-				params[4].ppTextures = &pRenderTargetFar[i]->pTexture;
-				params[5].pName = "TextureNear";
-				params[5].ppTextures = &pRenderTargetNear[i]->pTexture;
-				params[6].pName = "UniformDOF";
-				params[6].ppBuffers = &pUniformBuffersDOF[i];
-				//updateDescriptorSet(pRenderer, i,
-				//	pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 7,
-				//	params);
+				params[3].ppTextures = &pRenderTargetFilterNearCoCFinal[i]->pTexture;
+				params[4].pName = "TextureFar_x4";
+				params[4].ppTextures = &pRenderTargetFarFilled[i]->pTexture;
+				params[5].pName = "TextureNear_x4";
+				params[5].ppTextures = &pRenderTargetNearFilled[i]->pTexture;
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 6,
+					params);
 			}
 		}
 	}

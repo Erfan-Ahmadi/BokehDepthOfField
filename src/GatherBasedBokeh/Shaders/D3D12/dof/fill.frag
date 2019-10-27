@@ -38,7 +38,7 @@ PSOut main(VSOutput input) : SV_TARGET
 		{
 			for (int j = -1; j <= 1; j++)
 			{
-				float2 sampleTexCoord = input.UV + float2(i, j)*pixelSize;
+				float2 sampleTexCoord = input.UV + float2(i, j) * pixelSize;
 				float4 sample = TextureNear.Sample(samplerPoint, sampleTexCoord);
 				output.TextureNearFilled = max(output.TextureNearFilled, sample);
 			}
@@ -51,7 +51,7 @@ PSOut main(VSOutput input) : SV_TARGET
 		{
 			for (int j = -1; j <= 1; j++)
 			{
-				float2 sampleTexCoord = input.UV + float2(i, j)*pixelSize;
+				float2 sampleTexCoord = input.UV + float2(i, j) * pixelSize;
 				float4 sample = TextureFar.Sample(samplerPoint, sampleTexCoord);
 				output.TextureFarFilled = max(output.TextureFarFilled, sample);
 			}

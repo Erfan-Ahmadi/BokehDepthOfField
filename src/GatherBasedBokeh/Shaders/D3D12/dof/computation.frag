@@ -12,8 +12,8 @@ struct VSOutput
 
 struct PSOut
 {
-    float4 TextureFar			: SV_Target0;
-    float2 TextureNear			: SV_Target1;
+    float2 TextureNear			: SV_Target0;
+    float4 TextureFar			: SV_Target1;
 };
 
 static const float2 offsets[] =
