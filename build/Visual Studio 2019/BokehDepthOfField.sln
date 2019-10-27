@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CircularDOF", "CircularDOF\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SinglePassBokeh", "SinglePassBokeh\SinglePassBokeh.vcxproj", "{B9AF42EB-A67B-41A4-BC77-E44E0396B802}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GatherBasedBokeh", "GatherBasedBokeh\GatherBasedBokeh.vcxproj", "{42F3AE0C-5498-46AF-86C5-011366FFAE1B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		DebugDx|x64 = DebugDx|x64
@@ -41,6 +43,18 @@ Global
 		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseDx11|x64.Build.0 = ReleaseDx11|x64
 		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseVk|x64.ActiveCfg = ReleaseVk|x64
 		{B9AF42EB-A67B-41A4-BC77-E44E0396B802}.ReleaseVk|x64.Build.0 = ReleaseVk|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.DebugDx|x64.Build.0 = DebugDx|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.DebugDx11|x64.ActiveCfg = DebugDx11|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.DebugDx11|x64.Build.0 = DebugDx11|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.DebugVk|x64.ActiveCfg = DebugVk|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.DebugVk|x64.Build.0 = DebugVk|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.ReleaseDx11|x64.ActiveCfg = ReleaseDx11|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.ReleaseDx11|x64.Build.0 = ReleaseDx11|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.ReleaseVk|x64.ActiveCfg = ReleaseVk|x64
+		{42F3AE0C-5498-46AF-86C5-011366FFAE1B}.ReleaseVk|x64.Build.0 = ReleaseVk|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
