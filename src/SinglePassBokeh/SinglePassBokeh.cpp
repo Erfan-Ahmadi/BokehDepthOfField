@@ -175,7 +175,7 @@ Buffer* pInstanceColorBuffer													= NULL;
 cbPerPass			gUniformDataScene;
 UniformDataDOF		gUniformDataDOF;
 SceneData			gSponzaSceneData;
-MeshBatch* gLightMesh;
+MeshBatch*			gLightMesh;
 
 PointLight			pointLights[gPointLights];
 LightData			lightData;
@@ -1233,7 +1233,7 @@ class SinglePassBokeh: public IApp
 				params[2].pName = "UniformDOF";
 				params[2].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsDOF[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2,
+					pDescriptorSetsDOF[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 3,
 					params);
 			}
 		}
@@ -1434,6 +1434,7 @@ class SinglePassBokeh: public IApp
 	void RemovePipelines()
 	{
 		removePipeline(pRenderer, pPipelineScene);
+		removePipeline(pRenderer, pPipelineLight);
 		removePipeline(pRenderer, pPipelineCoC);
 		removePipeline(pRenderer, pPipelineDOF);
 	}

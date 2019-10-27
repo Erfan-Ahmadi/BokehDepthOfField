@@ -17,13 +17,13 @@ Texture2D		TextureColor	: register(t1, UPDATE_FREQ_PER_FRAME);
 
 static const float GOLDEN_ANGLE = 2.39996323f; 
 static const float MAX_BLUR_SIZE = 20.0f; 
-static const float RAD_SCALE = 1.5; // Smaller = nicer blur, larger = faster
+static const float RAD_SCALE = 2.0; // Smaller = nicer blur, larger = faster
 
 float getBlurSize(float2 coc)
 {
 	if(coc.g > 0.0f)
-		return coc.g * MAX_BLUR_SIZE;
-	return coc.r * MAX_BLUR_SIZE;
+		return coc.g * maxRadius;
+	return coc.r * maxRadius;
 	//float coc = clamp((1.0 / focusPoint - 1.0 / depth) * focusScale, -1.0, 1.0);
 	//return abs(coc) * MAX_BLUR_SIZE;
 }
@@ -38,8 +38,8 @@ float4 main(VSOutput input) : SV_TARGET
 	
 	float2 coc = TextureCoC.Sample(samplerPoint, input.UV).rg;
 	
-	if(coc.g == 0 && coc.r == 0)
-		return float4(color, 1.0f);
+	//if(coc.g == 0 && coc.r == 0)
+	//	return float4(color, 1.0f);
 
 	float centerSize = getBlurSize(coc);
 

@@ -99,16 +99,17 @@ struct VSOutput
     float2 UV		: TEXCOORD0;
 };
 
-SamplerState	samplerLinear	: register(s0);
-SamplerState	samplerPoint	: register(s1);
-Texture2D		TextureCoC		: register(t0, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureFarR		: register(t1, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureFarG		: register(t2, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureFarB		: register(t3, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureNearR	: register(t4, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureNearG	: register(t5, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureNearB	: register(t6, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureColor	: register(t7, UPDATE_FREQ_PER_FRAME);
+SamplerState	samplerLinear		: register(s0);
+SamplerState	samplerPoint		: register(s1);
+Texture2D		TextureCoC			: register(t0, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureFarR			: register(t1, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureFarG			: register(t2, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureFarB			: register(t3, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearR		: register(t4, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearG		: register(t5, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearB		: register(t6, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureColor		: register(t7, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureSumWeights	: register(t8, UPDATE_FREQ_PER_FRAME);
 
 float2 multComplex(float2 p, float2 q)
 {
@@ -121,15 +122,16 @@ float4 main(VSOutput input) : SV_TARGET
 	TextureFarR.GetDimensions(w, h);
 	float2 step = 1.0f / float2(w, h);
 
-	float4 color = sqrt(TextureColor.Sample(samplerLinear, input.UV));
+	float4 color = (TextureColor.Sample(samplerLinear, input.UV));
 	
-	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg * maxRadius;
+	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
 
 	float4 filteredColorFar = float4(0, 0, 0, 0);
 	float4 filteredColorNear = float4(0, 0, 0, 0);
 
 	if(cocValue.g != 0)
 	{	
+		float sumWeights = TextureSumWeights.Sample(samplerLinear, input.UV).r;
 		float4 valR = float4(0, 0, 0, 0);
 		float4 valG = float4(0, 0, 0, 0);
 		float4 valB = float4(0, 0, 0, 0);
@@ -167,7 +169,7 @@ float4 main(VSOutput input) : SV_TARGET
 		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_2) + dot(valR.zw, Kernel1Weights_RealX_ImY_2);
 		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_2) + dot(valG.zw, Kernel1Weights_RealX_ImY_2);
 		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_2) + dot(valB.zw, Kernel1Weights_RealX_ImY_2);
-		filteredColorFar = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+		filteredColorFar = float4(sqrt(float3(redChannel, greenChannel, blueChannel) / sumWeights), w);
 	}
 	else if(cocValue.r != 0)
 	{	
@@ -195,10 +197,10 @@ float4 main(VSOutput input) : SV_TARGET
 		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_1);
 		filteredColorNear = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
 	}
-
-	color = lerp(color, filteredColorFar, saturate(cocValue.g * 4));
-
-	if(cocValue.r > 0.05f)
+	
+	//if(cocValue.g > 0.0)
+		color = lerp(color, filteredColorFar, saturate(cocValue.g * 30));
+	if(cocValue.r > 0.99f)
 		color = lerp(color, filteredColorNear, 0.0f);
 
 	return color;
