@@ -123,6 +123,8 @@ Cmd** ppCmdsCoC 																= NULL;
 Cmd** ppCmdsDownress 															= NULL;
 Cmd** ppCmdsMaxFilterNearCoCX 													= NULL;
 Cmd** ppCmdsMaxFilterNearCoCY													= NULL;
+Cmd** ppCmdsBoxFilterNearCoCX 													= NULL;
+Cmd** ppCmdsBoxFilterNearCoCY													= NULL;
 Cmd** ppCmdsHorizontalDof 														= NULL;
 Cmd** ppCmdsComposite															= NULL;
 
@@ -136,8 +138,10 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 Pipeline* pPipelineScene 														= NULL;
 Pipeline* pPipelineLight 														= NULL;
 Pipeline* pPipelineDownres 														= NULL;
-Pipeline* pPipelineFilterNearCoCX 												= NULL;
-Pipeline* pPipelineFilterNearCoCY 												= NULL;
+Pipeline* pPipelineMaxFilterNearCoCX 											= NULL;
+Pipeline* pPipelineMaxFilterNearCoCY 											= NULL;
+Pipeline* pPipelineBoxFilterNearCoCX 											= NULL;
+Pipeline* pPipelineBoxFilterNearCoCY 											= NULL;
 Pipeline* pPipelineCoC 															= NULL;
 Pipeline* pPipelineHorizontalDOF 												= NULL;
 Pipeline* pPipelineComposite 													= NULL;
@@ -146,8 +150,10 @@ Shader* pShaderBasic 															= NULL;
 Shader* pShaderLight 															= NULL;
 Shader* pShaderGenCoc 															= NULL;
 Shader* pShaderDownres 															= NULL;
-Shader* pShaderFilterNearCoCX 													= NULL;
-Shader* pShaderFilterNearCoCY 													= NULL;
+Shader* pShaderMaxFilterNearCoCX 												= NULL;
+Shader* pShaderMaxFilterNearCoCY 												= NULL;
+Shader* pShaderBoxFilterNearCoCX 												= NULL;
+Shader* pShaderBoxFilterNearCoCY 												= NULL;
 Shader* pShaderHorizontalDof 													= NULL;
 Shader* pShaderComposite 														= NULL;
 
@@ -880,7 +886,7 @@ class GatherBasedBokeh: public IApp
 			cmdSetScissor(cmd, 0, 0, pFilteredNearCoC->mDesc.mWidth,
 				pFilteredNearCoC->mDesc.mHeight);
 
-			cmdBindPipeline(cmd, pPipelineFilterNearCoCX);
+			cmdBindPipeline(cmd, pPipelineMaxFilterNearCoCX);
 			{
 				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
@@ -913,7 +919,72 @@ class GatherBasedBokeh: public IApp
 			cmdSetScissor(cmd, 0, 0, pDownresRenderTargets[0]->mDesc.mWidth,
 				pDownresRenderTargets[0]->mDesc.mHeight);
 
-			cmdBindPipeline(cmd, pPipelineFilterNearCoCY);
+			cmdBindPipeline(cmd, pPipelineMaxFilterNearCoCY);
+			{
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsBoxFilterNearCoCX[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "NearCoC Blur X", true);
+
+			TextureBarrier textureBarriers[2] =
+			{
+				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+
+			loadActions = {};
+			cmdBindRenderTargets(cmd, 1, &pFilteredNearCoC, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pFilteredNearCoC->mDesc.mWidth,
+				(float)pFilteredNearCoC->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pFilteredNearCoC->mDesc.mWidth,
+				pFilteredNearCoC->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineBoxFilterNearCoCX);
+			{
+				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdDraw(cmd, 3, 0);
+			}
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		}
+		endCmd(cmd);
+		allCmds.push_back(cmd);
+
+		cmd = ppCmdsBoxFilterNearCoCY[gFrameIndex];
+		beginCmd(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "NearCoC Blur Y", true);
+
+			TextureBarrier textureBarriers[2] =
+			{
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+
+			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
+
+			loadActions = {};
+			cmdBindRenderTargets(cmd, 1, &pDownresRenderTargets[0], NULL, &loadActions, NULL, NULL, -1, -1);
+
+			cmdSetViewport(
+				cmd, 0.0f, 0.0f, (float)pDownresRenderTargets[0]->mDesc.mWidth,
+				(float)pDownresRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pDownresRenderTargets[0]->mDesc.mWidth,
+				pDownresRenderTargets[0]->mDesc.mHeight);
+
+			cmdBindPipeline(cmd, pPipelineBoxFilterNearCoCY);
 			{
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
@@ -962,7 +1033,7 @@ class GatherBasedBokeh: public IApp
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		}
 		endCmd(cmd);
-		allCmds.push_back(cmd);
+		//allCmds.push_back(cmd);
 
 		cmd = ppCmdsComposite[gFrameIndex];
 		beginCmd(cmd);
@@ -1255,6 +1326,7 @@ class GatherBasedBokeh: public IApp
 
 	void AddShaders()
 	{
+
 		ShaderMacro    sceneShaderMacros[2] =
 		{
 			{ "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_SPONZA_IMGS) },
@@ -1265,9 +1337,13 @@ class GatherBasedBokeh: public IApp
 		shaderDesc.mStages[1] = { "meshes/basic.frag", sceneShaderMacros, 2, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
 
+
+
 		shaderDesc.mStages[0] = { "meshes/light.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "meshes/light.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderLight);
+
+
 
 		ShaderMacro    ShaderMacroCoC[2] =
 		{
@@ -1278,9 +1354,13 @@ class GatherBasedBokeh: public IApp
 		shaderDesc.mStages[1] = { "dof/genCoc.frag", ShaderMacroCoC, 2, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderGenCoc);
 
+
+
 		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "dof/downsample.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderDownres);
+
+
 
 		ShaderMacro    ShaderMacroMaxFilterCoC[1] =
 		{
@@ -1288,13 +1368,27 @@ class GatherBasedBokeh: public IApp
 		};
 		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "dof/maxfilterNearCoC.frag", ShaderMacroMaxFilterCoC, 1, FSR_SrcShaders };
-		addShader(pRenderer, &shaderDesc, &pShaderFilterNearCoCX);
+		addShader(pRenderer, &shaderDesc, &pShaderMaxFilterNearCoCX);
 		ShaderMacroMaxFilterCoC[0] = { "HORIZONTAL", eastl::string().sprintf("false") };
-		addShader(pRenderer, &shaderDesc, &pShaderFilterNearCoCY);
+		addShader(pRenderer, &shaderDesc, &pShaderMaxFilterNearCoCY);
+
+
+		ShaderMacro    ShaderMacroBoxFilterCoC[1] =
+		{
+			{ "HORIZONTAL", eastl::string().sprintf("true") },
+		};
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/boxfilterNearCoC.frag", ShaderMacroBoxFilterCoC, 1, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderBoxFilterNearCoCX);
+		ShaderMacroBoxFilterCoC[0] = { "HORIZONTAL", eastl::string().sprintf("false") };
+		addShader(pRenderer, &shaderDesc, &pShaderBoxFilterNearCoCY);
+
 
 		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "dof/horizontalDof.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderHorizontalDof);
+
+
 
 		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "dof/composite.frag", NULL, 0, FSR_SrcShaders };
@@ -1307,8 +1401,10 @@ class GatherBasedBokeh: public IApp
 		removeShader(pRenderer, pShaderLight);
 		removeShader(pRenderer, pShaderGenCoc);
 		removeShader(pRenderer, pShaderDownres);
-		removeShader(pRenderer, pShaderFilterNearCoCX);
-		removeShader(pRenderer, pShaderFilterNearCoCY);
+		removeShader(pRenderer, pShaderMaxFilterNearCoCX);
+		removeShader(pRenderer, pShaderMaxFilterNearCoCY);
+		removeShader(pRenderer, pShaderBoxFilterNearCoCX);
+		removeShader(pRenderer, pShaderBoxFilterNearCoCY);
 		removeShader(pRenderer, pShaderHorizontalDof);
 		removeShader(pRenderer, pShaderComposite);
 	}
@@ -1393,7 +1489,7 @@ class GatherBasedBokeh: public IApp
 			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
 			uint        numStaticSamplers = 2;
 			{
-				Shader* shaders[1] = { pShaderFilterNearCoCX };
+				Shader* shaders[1] = { pShaderMaxFilterNearCoCX };
 				RootSignatureDesc rootDesc = {};
 				rootDesc.mShaderCount = 1;
 				rootDesc.ppShaders = shaders;
@@ -1415,7 +1511,7 @@ class GatherBasedBokeh: public IApp
 			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
 			uint        numStaticSamplers = 2;
 			{
-				Shader* shaders[1] = { pShaderFilterNearCoCY };
+				Shader* shaders[1] = { pShaderMaxFilterNearCoCY };
 				RootSignatureDesc rootDesc = {};
 				rootDesc.mShaderCount = 1;
 				rootDesc.ppShaders = shaders;
@@ -1966,10 +2062,12 @@ class GatherBasedBokeh: public IApp
 			pipelineSettings.mSampleCount = pRenderTargetFilterNearCoC[0]->mDesc.mSampleCount;
 			pipelineSettings.mSampleQuality = pRenderTargetFilterNearCoC[0]->mDesc.mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignatureMaxFilterNearX;
-			pipelineSettings.pShaderProgram = pShaderFilterNearCoCX;
+			pipelineSettings.pShaderProgram = pShaderMaxFilterNearCoCX;
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
-			addPipeline(pRenderer, &desc, &pPipelineFilterNearCoCX);
+			addPipeline(pRenderer, &desc, &pPipelineMaxFilterNearCoCX);
+			pipelineSettings.pShaderProgram = pShaderBoxFilterNearCoCX;
+			addPipeline(pRenderer, &desc, &pPipelineBoxFilterNearCoCX);
 		}
 
 		// Filter Near CoC Y
@@ -1985,10 +2083,12 @@ class GatherBasedBokeh: public IApp
 			pipelineSettings.mSampleCount = pRenderTargetFilterNearCoC[0]->mDesc.mSampleCount;
 			pipelineSettings.mSampleQuality = pRenderTargetFilterNearCoC[0]->mDesc.mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignatureMaxFilterNearY;
-			pipelineSettings.pShaderProgram = pShaderFilterNearCoCY;
+			pipelineSettings.pShaderProgram = pShaderMaxFilterNearCoCY;
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
-			addPipeline(pRenderer, &desc, &pPipelineFilterNearCoCY);
+			addPipeline(pRenderer, &desc, &pPipelineMaxFilterNearCoCY);
+			pipelineSettings.pShaderProgram = pShaderBoxFilterNearCoCY;
+			addPipeline(pRenderer, &desc, &pPipelineBoxFilterNearCoCY);
 		}
 
 		// Horizontal Filter
@@ -2046,6 +2146,10 @@ class GatherBasedBokeh: public IApp
 		removePipeline(pRenderer, pPipelineScene);
 		removePipeline(pRenderer, pPipelineCoC);
 		removePipeline(pRenderer, pPipelineDownres);
+		removePipeline(pRenderer, pPipelineMaxFilterNearCoCX);
+		removePipeline(pRenderer, pPipelineMaxFilterNearCoCY);
+		removePipeline(pRenderer, pPipelineBoxFilterNearCoCX);
+		removePipeline(pRenderer, pPipelineBoxFilterNearCoCY);
 		removePipeline(pRenderer, pPipelineHorizontalDOF);
 		removePipeline(pRenderer, pPipelineComposite);
 	}
@@ -2060,6 +2164,8 @@ class GatherBasedBokeh: public IApp
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsDownress);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsMaxFilterNearCoCX);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsMaxFilterNearCoCY);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsBoxFilterNearCoCX);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsBoxFilterNearCoCY);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsHorizontalDof);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
@@ -2071,6 +2177,8 @@ class GatherBasedBokeh: public IApp
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsDownress);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsMaxFilterNearCoCX);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsMaxFilterNearCoCY);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsBoxFilterNearCoCX);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsBoxFilterNearCoCY);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsHorizontalDof);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);

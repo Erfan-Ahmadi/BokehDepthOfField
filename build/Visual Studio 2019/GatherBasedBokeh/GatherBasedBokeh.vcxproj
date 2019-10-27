@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\boxfilterNearCoC.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\composite.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\downsample.frag" />
     <None Include="..\..\..\src\GatherBasedBokeh\Shaders\D3D12\dof\maxfilterNearCoC.frag" />
