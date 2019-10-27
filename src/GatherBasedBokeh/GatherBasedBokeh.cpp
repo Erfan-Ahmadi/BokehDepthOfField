@@ -1082,16 +1082,18 @@ class GatherBasedBokeh: public IApp
 
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
 
-			TextureBarrier textureBarriers[5] =
+			TextureBarrier textureBarriers[7] =
 			{
 				{ pSwapChainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pComputationRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pComputationRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pFillingRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pFillingRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pFilteredNearCoCFinal->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pGenCocRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pHdrRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 7, textureBarriers);
 
 			loadActions = {};
 			cmdBindRenderTargets(cmd, 1, &pSwapChainRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
@@ -1878,8 +1880,10 @@ class GatherBasedBokeh: public IApp
 				params[4].ppTextures = &pRenderTargetFarFilled[i]->pTexture;
 				params[5].pName = "TextureNear_x4";
 				params[5].ppTextures = &pRenderTargetNearFilled[i]->pTexture;
+				params[6].pName = "UniformDOF";
+				params[6].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 6,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 7,
 					params);
 			}
 		}
@@ -1945,8 +1949,8 @@ class GatherBasedBokeh: public IApp
 			rtDesc.mClearValue = clearVal;
 			rtDesc.mFormat = pRenderTargetCoC[0]->mDesc.mFormat;
 			rtDesc.mDepth = 1;
-			rtDesc.mWidth = mSettings.mWidth;
-			rtDesc.mHeight = mSettings.mHeight;
+			rtDesc.mWidth = mSettings.mWidth / 2;
+			rtDesc.mHeight = mSettings.mHeight / 2;
 			rtDesc.mSampleCount = SAMPLE_COUNT_1;
 			rtDesc.mSampleQuality = 0;
 
