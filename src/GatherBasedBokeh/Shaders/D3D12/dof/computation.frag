@@ -73,9 +73,10 @@ static const float2 offsets[] =
 SamplerState	samplerLinear		: register(s0);
 SamplerState	samplerPoint		: register(s1);
 
-Texture2D		TextureCoC			: register(t0, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureColor		: register(t1, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureColorMulFar	: register(t2, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureCoC				: register(t0, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureColor			: register(t1, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureColorMulFar		: register(t2, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearCoCBlurred	: register(t3, UPDATE_FREQ_PER_FRAME);
 
 float4 Near(float2 texCoord, float2 pixelSize)
 {
@@ -117,7 +118,7 @@ PSOut main(VSOutput input) : SV_TARGET
 
 	PSOut output;
 
-	float cocNearBlurred = TextureCoC.Sample(samplerPoint, input.UV).x;
+	float cocNearBlurred = TextureNearCoCBlurred.Sample(samplerPoint, input.UV).x;
 	float cocFar = TextureCoC.Sample(samplerPoint, input.UV).y;
 	float4 color = TextureColor.Sample(samplerPoint, input.UV);
 

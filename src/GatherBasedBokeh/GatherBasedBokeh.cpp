@@ -126,6 +126,7 @@ Cmd** ppCmdsMaxFilterNearCoCY													= NULL;
 Cmd** ppCmdsBoxFilterNearCoCX 													= NULL;
 Cmd** ppCmdsBoxFilterNearCoCY													= NULL;
 Cmd** ppCmdsComputation 														= NULL;
+Cmd** ppCmdsFilling 															= NULL;
 Cmd** ppCmdsComposite															= NULL;
 
 SwapChain* pSwapChain 															= NULL;
@@ -144,6 +145,7 @@ Pipeline* pPipelineMaxFilterNearCoCY 											= NULL;
 Pipeline* pPipelineBoxFilterNearCoCX 											= NULL;
 Pipeline* pPipelineBoxFilterNearCoCY 											= NULL;
 Pipeline* pPipelineComputation 													= NULL;
+Pipeline* pPipelineFilling 														= NULL;
 Pipeline* pPipelineComposite 													= NULL;
 
 Shader* pShaderBasic 															= NULL;
@@ -155,22 +157,29 @@ Shader* pShaderMaxFilterNearCoCY 												= NULL;
 Shader* pShaderBoxFilterNearCoCX 												= NULL;
 Shader* pShaderBoxFilterNearCoCY 												= NULL;
 Shader* pShaderComputation 														= NULL;
+Shader* pShaderFill 															= NULL;
 Shader* pShaderComposite 														= NULL;
 
 DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsDownres[DESCRIPTOR_UPDATE_FREQ_COUNT] 			= { NULL };
-DescriptorSet* pDescriptorSetsMaxFilterNearX[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
-DescriptorSet* pDescriptorSetsMaxFilterNearY[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsNearMaxFilterX[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsNearMaxFilterY[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsBoxFilterNearX[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsBoxFilterNearY[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsComputationPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 	= { NULL };
+DescriptorSet* pDescriptorSetsFillingPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 
 RootSignature* pRootSignatureScene 												= NULL;
+RootSignature* pRootSignatureCoC 												= NULL;
 RootSignature* pRootSignatureDownres 											= NULL;
 RootSignature* pRootSignatureMaxFilterNearX 									= NULL;
 RootSignature* pRootSignatureMaxFilterNearY 									= NULL;
-RootSignature* pRootSignatureCoC 												= NULL;
+RootSignature* pRootSignatureBoxFilterNearX 									= NULL;
+RootSignature* pRootSignatureBoxFilterNearY 									= NULL;
 RootSignature* pRootSignatureComputationPass									= NULL;
+RootSignature* pRootSignatureFillingPass 										= NULL;
 RootSignature* pRootSignatureCompositePass 										= NULL;
 
 Sampler* pSamplerLinear;
@@ -187,9 +196,13 @@ RenderTarget* pRenderTargetColorDownres[gImageCount]							= { NULL };	// HDR/4
 RenderTarget* pRenderTargetMulFarDownres[gImageCount]							= { NULL };	// HDR/4
 
 RenderTarget* pRenderTargetFilterNearCoC[gImageCount]							= { NULL };	// R8/4
+RenderTarget* pRenderTargetFilterNearCoCFinal[gImageCount]						= { NULL };	// R8/4
 
 RenderTarget* pRenderTargetFar[gImageCount]										= { NULL }; // FAR/4
 RenderTarget* pRenderTargetNear[gImageCount]									= { NULL }; // NEAR/4
+
+RenderTarget* pRenderTargetFarFilled[gImageCount]								= { NULL }; // FAR/4
+RenderTarget* pRenderTargetNearFilled[gImageCount]								= { NULL }; // NEAR/4
 
 RasterizerState* pRasterDefault 												= NULL;
 
@@ -709,6 +722,7 @@ class GatherBasedBokeh: public IApp
 		};
 
 		RenderTarget* pFilteredNearCoC = pRenderTargetFilterNearCoC[gFrameIndex];
+		RenderTarget* pFilteredNearCoCFinal = pRenderTargetFilterNearCoCFinal[gFrameIndex];
 
 		RenderTarget* pComputationRenderTargets[2] =
 		{
@@ -877,8 +891,7 @@ class GatherBasedBokeh: public IApp
 
 			cmdBindPipeline(cmd, pPipelineMaxFilterNearCoCX);
 			{
-				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsNearMaxFilterX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -893,25 +906,24 @@ class GatherBasedBokeh: public IApp
 
 			TextureBarrier textureBarriers[2] =
 			{
-				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pFilteredNearCoCFinal->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
 			loadActions = {};
-			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-			cmdBindRenderTargets(cmd, 1, &pDownresRenderTargets[0], NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 1, &pFilteredNearCoCFinal, NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pDownresRenderTargets[0]->mDesc.mWidth,
-				(float)pDownresRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pDownresRenderTargets[0]->mDesc.mWidth,
-				pDownresRenderTargets[0]->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pFilteredNearCoCFinal->mDesc.mWidth,
+				(float)pFilteredNearCoCFinal->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pFilteredNearCoCFinal->mDesc.mWidth,
+				pFilteredNearCoCFinal->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineMaxFilterNearCoCY);
 			{
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsNearMaxFilterY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -927,7 +939,7 @@ class GatherBasedBokeh: public IApp
 			TextureBarrier textureBarriers[2] =
 			{
 				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
+				{ pFilteredNearCoCFinal->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
@@ -943,8 +955,7 @@ class GatherBasedBokeh: public IApp
 
 			cmdBindPipeline(cmd, pPipelineBoxFilterNearCoCX);
 			{
-				//cmdBindDescriptorSet(cmd, 0, pDescriptorSetsFilterNearCoC[DESCRIPTOR_UPDATE_FREQ_NONE]);
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsBoxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -959,25 +970,24 @@ class GatherBasedBokeh: public IApp
 
 			TextureBarrier textureBarriers[2] =
 			{
-				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
+				{ pFilteredNearCoCFinal->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pFilteredNearCoC->pTexture, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 
 			cmdResourceBarrier(cmd, 0, nullptr, 2, textureBarriers);
 
 			loadActions = {};
-			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-			cmdBindRenderTargets(cmd, 1, &pDownresRenderTargets[0], NULL, &loadActions, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 1, &pFilteredNearCoCFinal, NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pDownresRenderTargets[0]->mDesc.mWidth,
-				(float)pDownresRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pDownresRenderTargets[0]->mDesc.mWidth,
-				pDownresRenderTargets[0]->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pFilteredNearCoCFinal->mDesc.mWidth,
+				(float)pFilteredNearCoCFinal->mDesc.mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pFilteredNearCoCFinal->mDesc.mWidth,
+				pFilteredNearCoCFinal->mDesc.mHeight);
 
 			cmdBindPipeline(cmd, pPipelineBoxFilterNearCoCY);
 			{
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsMaxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsBoxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -990,16 +1000,17 @@ class GatherBasedBokeh: public IApp
 		{
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Computation Pass", true);
 
-			TextureBarrier textureBarriers[5] =
+			TextureBarrier textureBarriers[6] =
 			{
 				{ pComputationRenderTargets[0]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pComputationRenderTargets[1]->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDownresRenderTargets[0]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // CoC DownRes
 				{ pDownresRenderTargets[1]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // Color DownRes
 				{ pDownresRenderTargets[2]->pTexture, RESOURCE_STATE_SHADER_RESOURCE }, // CoC Mul Far
+				{ pFilteredNearCoCFinal->pTexture, RESOURCE_STATE_SHADER_RESOURCE },	// Near CoC Blurred
 			};
 
-			cmdResourceBarrier(cmd, 0, nullptr, 5, textureBarriers);
+			cmdResourceBarrier(cmd, 0, nullptr, 6, textureBarriers);
 
 			loadActions = {};
 
@@ -1369,6 +1380,10 @@ class GatherBasedBokeh: public IApp
 		addShader(pRenderer, &shaderDesc, &pShaderComputation);
 
 
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/fill.frag", NULL, 0, FSR_SrcShaders };
+		addShader(pRenderer, &shaderDesc, &pShaderFill);
+
 
 		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "dof/composite.frag", NULL, 0, FSR_SrcShaders };
@@ -1386,6 +1401,7 @@ class GatherBasedBokeh: public IApp
 		removeShader(pRenderer, pShaderBoxFilterNearCoCX);
 		removeShader(pRenderer, pShaderBoxFilterNearCoCY);
 		removeShader(pRenderer, pShaderComputation);
+		removeShader(pRenderer, pShaderFill);
 		removeShader(pRenderer, pShaderComposite);
 	}
 
@@ -1463,7 +1479,7 @@ class GatherBasedBokeh: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsDownres[1]);
 		}
 
-		// Filter Near CoC X
+		// MaxFilter Near CoC X
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
 			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
@@ -1480,12 +1496,12 @@ class GatherBasedBokeh: public IApp
 			}
 
 			DescriptorSetDesc setDesc = { pRootSignatureMaxFilterNearX, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsMaxFilterNearX[0]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearMaxFilterX[0]);
 			setDesc = { pRootSignatureMaxFilterNearX, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsMaxFilterNearX[1]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearMaxFilterX[1]);
 		}
 
-		// Filter Near CoC Y
+		// MaxFilter Near CoC Y
 		{
 			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
 			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
@@ -1502,9 +1518,53 @@ class GatherBasedBokeh: public IApp
 			}
 
 			DescriptorSetDesc setDesc = { pRootSignatureMaxFilterNearY, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsMaxFilterNearY[0]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearMaxFilterY[0]);
 			setDesc = { pRootSignatureMaxFilterNearY, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsMaxFilterNearY[1]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearMaxFilterY[1]);
+		}
+
+		// BoxFilter Near CoC X
+		{
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
+			uint        numStaticSamplers = 2;
+			{
+				Shader* shaders[1] = { pShaderBoxFilterNearCoCX };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureBoxFilterNearX);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureBoxFilterNearX, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearX[0]);
+			setDesc = { pRootSignatureBoxFilterNearX, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearX[1]);
+		}
+
+		// BoxFilter Near CoC Y
+		{
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
+			uint        numStaticSamplers = 2;
+			{
+				Shader* shaders[1] = { pShaderBoxFilterNearCoCY };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureBoxFilterNearY);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureBoxFilterNearY, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearY[0]);
+			setDesc = { pRootSignatureBoxFilterNearY, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearY[1]);
 		}
 
 		// Computation
@@ -1527,6 +1587,28 @@ class GatherBasedBokeh: public IApp
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsComputationPass[0]);
 			setDesc = { pRootSignatureComputationPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsComputationPass[1]);
+		}
+
+		// Filling
+		{
+			const char* pStaticSamplerNames [] = { "samplerLinear", "samplerPoint" };
+			Sampler* pStaticSamplers [] = { pSamplerLinearClampEdge, pSamplerPoint };
+			uint        numStaticSamplers = 2;
+			{
+				Shader* shaders[1] = { pShaderFill };
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				rootDesc.mStaticSamplerCount = numStaticSamplers;
+				rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+				rootDesc.ppStaticSamplers = pStaticSamplers;
+				addRootSignature(pRenderer, &rootDesc, &pRootSignatureFillingPass);
+			}
+
+			DescriptorSetDesc setDesc = { pRootSignatureFillingPass, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFillingPass[0]);
+			setDesc = { pRootSignatureFillingPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFillingPass[1]);
 		}
 
 		// Composite
@@ -1559,7 +1641,10 @@ class GatherBasedBokeh: public IApp
 		removeRootSignature(pRenderer, pRootSignatureDownres);
 		removeRootSignature(pRenderer, pRootSignatureMaxFilterNearX);
 		removeRootSignature(pRenderer, pRootSignatureMaxFilterNearY);
+		removeRootSignature(pRenderer, pRootSignatureBoxFilterNearX);
+		removeRootSignature(pRenderer, pRootSignatureBoxFilterNearY);
 		removeRootSignature(pRenderer, pRootSignatureComputationPass);
+		removeRootSignature(pRenderer, pRootSignatureFillingPass);
 		removeRootSignature(pRenderer, pRootSignatureCompositePass);
 
 		for (int i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
@@ -1570,12 +1655,18 @@ class GatherBasedBokeh: public IApp
 				removeDescriptorSet(pRenderer, pDescriptorSetsCoc[i]);
 			if (pDescriptorSetsDownres[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsDownres[i]);
-			if (pDescriptorSetsMaxFilterNearX[i])
-				removeDescriptorSet(pRenderer, pDescriptorSetsMaxFilterNearX[i]);
-			if (pDescriptorSetsMaxFilterNearY[i])
-				removeDescriptorSet(pRenderer, pDescriptorSetsMaxFilterNearY[i]);
+			if (pDescriptorSetsNearMaxFilterX[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsNearMaxFilterX[i]);
+			if (pDescriptorSetsNearMaxFilterY[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsNearMaxFilterY[i]);
+			if (pDescriptorSetsBoxFilterNearX[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsBoxFilterNearX[i]);
+			if (pDescriptorSetsBoxFilterNearY[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsBoxFilterNearY[i]);
 			if (pDescriptorSetsComputationPass[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsComputationPass[i]);
+			if (pDescriptorSetsFillingPass[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsFillingPass[i]);
 			if (pDescriptorSetsCompositePass[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsCompositePass[i]);
 		}
@@ -1636,7 +1727,7 @@ class GatherBasedBokeh: public IApp
 			}
 		}
 
-		// Near CoC Filter X
+		// Near CoC Max Filter X
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -1644,12 +1735,12 @@ class GatherBasedBokeh: public IApp
 				params[0].pName = "NearCoCTexture";
 				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsMaxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					pDescriptorSetsNearMaxFilterX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
 					params);
 			}
 		}
 
-		// Near CoC Filter Y
+		// Near CoC Max Filter Y
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -1657,7 +1748,33 @@ class GatherBasedBokeh: public IApp
 				params[0].pName = "NearCoCTexture";
 				params[0].ppTextures = &pRenderTargetFilterNearCoC[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsMaxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					pDescriptorSetsNearMaxFilterY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					params);
+			}
+		}
+
+		// Near CoC Box Filter X
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "NearCoCTexture";
+				params[0].ppTextures = &pRenderTargetFilterNearCoCFinal[i]->pTexture;
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsBoxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					params);
+			}
+		}
+
+		// Near CoC Box Filter Y
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "NearCoCTexture";
+				params[0].ppTextures = &pRenderTargetFilterNearCoC[i]->pTexture;
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsBoxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
 					params);
 			}
 		}
@@ -1666,15 +1783,36 @@ class GatherBasedBokeh: public IApp
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				DescriptorData params[4] = {};
+				DescriptorData params[5] = {};
 				params[0].pName = "TextureCoC";
 				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
 				params[1].pName = "TextureColor";
 				params[1].ppTextures = &pRenderTargetColorDownres[i]->pTexture;
 				params[2].pName = "TextureColorMulFar";
 				params[2].ppTextures = &pRenderTargetMulFarDownres[i]->pTexture;
-				params[3].pName = "UniformDOF";
-				params[3].ppBuffers = &pUniformBuffersDOF[i];
+				params[3].pName = "TextureNearCoCBlurred";
+				params[3].ppTextures = &pRenderTargetFilterNearCoCFinal[i]->pTexture;
+				params[4].pName = "UniformDOF";
+				params[4].ppBuffers = &pUniformBuffersDOF[i];
+				updateDescriptorSet(pRenderer, i,
+					pDescriptorSetsComputationPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 5,
+					params);
+			}
+		}
+
+		// Fill
+		{
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[4] = {};
+				params[0].pName = "TextureCoC";
+				params[0].ppTextures = &pRenderTargetCoCDowres[i]->pTexture;
+				params[1].pName = "TextureNearCoCBlur";
+				params[1].ppTextures = &pRenderTargetFilterNearCoCFinal[i]->pTexture;
+				params[2].pName = "TextureTextureFar";
+				params[2].ppTextures = &pRenderTargetFar[i]->pTexture;
+				params[3].pName = "TextureNear";
+				params[3].ppTextures = &pRenderTargetNears[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
 					pDescriptorSetsComputationPass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 4,
 					params);
@@ -1810,10 +1948,11 @@ class GatherBasedBokeh: public IApp
 			for (int i = 0; i < gImageCount; ++i)
 			{
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFilterNearCoC[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFilterNearCoCFinal[i]);
 			}
 		}
 
-		// Far Field
+		// Far + Far Filled
 		{
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
@@ -1828,10 +1967,11 @@ class GatherBasedBokeh: public IApp
 			for (int i = 0; i < gImageCount; ++i)
 			{
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFar[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetFarFilled[i]);
 			}
 		}
 
-		// Near Field
+		// Near + Near Filled
 		{
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
@@ -1846,6 +1986,7 @@ class GatherBasedBokeh: public IApp
 			for (int i = 0; i < gImageCount; ++i)
 			{
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetNear[i]);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargetNearFilled[i]);
 			}
 		}
 	}
@@ -1860,8 +2001,13 @@ class GatherBasedBokeh: public IApp
 			removeRenderTarget(pRenderer, pRenderTargetCoC[i]);
 			removeRenderTarget(pRenderer, pRenderTargetCoCDowres[i]);
 			removeRenderTarget(pRenderer, pRenderTargetColorDownres[i]);
+			removeRenderTarget(pRenderer, pRenderTargetMulFarDownres[i]);
+			removeRenderTarget(pRenderer, pRenderTargetFilterNearCoC[i]);
+			removeRenderTarget(pRenderer, pRenderTargetFilterNearCoCFinal[i]);
 			removeRenderTarget(pRenderer, pRenderTargetFar[i]);
 			removeRenderTarget(pRenderer, pRenderTargetNear[i]);
+			removeRenderTarget(pRenderer, pRenderTargetFarFilled[i]);
+			removeRenderTarget(pRenderer, pRenderTargetNearFilled[i]);
 		}
 	}
 
@@ -2015,6 +2161,8 @@ class GatherBasedBokeh: public IApp
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
 			addPipeline(pRenderer, &desc, &pPipelineMaxFilterNearCoCX);
+
+			pipelineSettings.pRootSignature = pRootSignatureBoxFilterNearX;
 			pipelineSettings.pShaderProgram = pShaderBoxFilterNearCoCX;
 			addPipeline(pRenderer, &desc, &pPipelineBoxFilterNearCoCX);
 		}
@@ -2036,6 +2184,7 @@ class GatherBasedBokeh: public IApp
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
 			addPipeline(pRenderer, &desc, &pPipelineMaxFilterNearCoCY);
+			pipelineSettings.pRootSignature = pRootSignatureBoxFilterNearY;
 			pipelineSettings.pShaderProgram = pShaderBoxFilterNearCoCY;
 			addPipeline(pRenderer, &desc, &pPipelineBoxFilterNearCoCY);
 		}
@@ -2063,6 +2212,31 @@ class GatherBasedBokeh: public IApp
 			pipelineSettings.pRasterizerState = pRasterDefault;
 
 			addPipeline(pRenderer, &desc, &pPipelineComputation);
+		}
+
+		// Filling
+		{
+			TinyImageFormat formats[2] =
+			{
+				pRenderTargetFarFilled[0]->mDesc.mFormat,
+				pRenderTargetNearFilled[0]->mDesc.mFormat,
+			};
+
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 2;
+			pipelineSettings.pDepthState = pDepthNone;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+			pipelineSettings.pColorFormats = formats;
+			pipelineSettings.mSampleCount = pRenderTargetFar[0]->mDesc.mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargetFar[0]->mDesc.mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureFillingPass;
+			pipelineSettings.pShaderProgram = pShaderFill;
+			pipelineSettings.pRasterizerState = pRasterDefault;
+
+			addPipeline(pRenderer, &desc, &pPipelineFilling);
 		}
 
 		// Composite
@@ -2095,6 +2269,7 @@ class GatherBasedBokeh: public IApp
 		removePipeline(pRenderer, pPipelineBoxFilterNearCoCX);
 		removePipeline(pRenderer, pPipelineBoxFilterNearCoCY);
 		removePipeline(pRenderer, pPipelineComputation);
+		removePipeline(pRenderer, pPipelineFilling);
 		removePipeline(pRenderer, pPipelineComposite);
 	}
 
@@ -2111,6 +2286,7 @@ class GatherBasedBokeh: public IApp
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsBoxFilterNearCoCX);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsBoxFilterNearCoCY);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComputation);
+		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsFilling);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmdsComposite);
 	}
 
@@ -2124,6 +2300,7 @@ class GatherBasedBokeh: public IApp
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsBoxFilterNearCoCX);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsBoxFilterNearCoCY);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsComputation);
+		removeCmd_n(pCmdPool, gImageCount, ppCmdsFilling);
 		removeCmd_n(pCmdPool, gImageCount, ppCmdsComposite);
 		removeCmdPool(pRenderer, pCmdPool);
 	}
