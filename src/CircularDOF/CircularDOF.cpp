@@ -1217,12 +1217,12 @@ class CircularDOF: public IApp
 			{ "NUM_LIGHTS", eastl::string().sprintf("%i", gPointLights) }
 		};
 		ShaderLoadDesc shaderDesc = {};
-		shaderDesc.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "basic.frag", sceneShaderMacros, 2, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "meshes/basic.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "meshes/basic.frag", sceneShaderMacros, 2, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderBasic);
 
-		shaderDesc.mStages[0] = { "light.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "light.frag", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "meshes/light.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "meshes/light.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderLight);
 
 		ShaderMacro    ShaderMacroCoC[2] =
@@ -1230,24 +1230,24 @@ class CircularDOF: public IApp
 			{ "zNear", eastl::string().sprintf("%f", gNear) },
 			{ "zFar", eastl::string().sprintf("%f", gFar) }
 		};
-		shaderDesc.mStages[0] = { "genCoc.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "genCoc.frag", ShaderMacroCoC, 2, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/genCoc.frag", ShaderMacroCoC, 2, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderGenCoc);
 
-		shaderDesc.mStages[0] = { "downsample.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "downsample.frag", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/downsample.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderDownres);
 
-		shaderDesc.mStages[0] = { "filterNearCoC.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "filterNearCoC.frag", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/filterNearCoC.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderFilterNearCoC);
 
-		shaderDesc.mStages[0] = { "horizontalDof.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "horizontalDof.frag", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/horizontalDof.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderHorizontalDof);
 
-		shaderDesc.mStages[0] = { "composite.vert", NULL, 0, FSR_SrcShaders };
-		shaderDesc.mStages[1] = { "composite.frag", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
+		shaderDesc.mStages[1] = { "dof/composite.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderComposite);
 	}
 

@@ -39,47 +39,35 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert">
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\downsample.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\filterNearCoC.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\genCoc.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\horizontalDof.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\image.vert">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\composite.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.vert">
       <Filter>Shaders\D3D12\meshes</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag">
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\light.frag">
       <Filter>Shaders\D3D12\meshes</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\light.frag">
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\light.vert">
       <Filter>Shaders\D3D12\meshes</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\light.vert">
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.frag">
       <Filter>Shaders\D3D12\meshes</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.vert">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.vert">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.vert">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert">
-      <Filter>Shaders\D3D12\dof</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

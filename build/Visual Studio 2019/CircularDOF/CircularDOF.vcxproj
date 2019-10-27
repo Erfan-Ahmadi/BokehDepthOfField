@@ -27,20 +27,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\basic.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\downsample.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\filterNearCoC.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\genCoc.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\composite.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\horizontalDof.vert" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\light.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\light.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\composite.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\downsample.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\filterNearCoC.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\genCoc.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\horizontalDof.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\image.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\light.frag" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\light.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\profile.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\Vulkan\basic.frag" />
