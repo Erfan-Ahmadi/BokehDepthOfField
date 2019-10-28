@@ -86,8 +86,6 @@ static const float4 Kernel0_RealX_ImY_RealZ_ImW_1[] = {
         float4(/*XY: Non Bracketed*/-0.001442,0.026656,/*Bracketed WZ:*/0.000000,0.085609)
 };
 
-
-
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float	maxRadius;
@@ -113,7 +111,6 @@ struct PSOut
     float2 TextureNearR			: SV_Target3;
     float2 TextureNearG			: SV_Target4;
     float2 TextureNearB			: SV_Target5;
-    float  TextureSumWeights	: SV_Target6;
 };
 
 PSOut main(VSOutput input) : SV_TARGET
@@ -132,7 +129,6 @@ PSOut main(VSOutput input) : SV_TARGET
 		float4 valG = float4(0, 0, 0, 0);
 		float4 valB = float4(0, 0, 0, 0);
 
-		float total = 0;
 		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
 		{
 			int index = i - KERNEL_RADIUS;
@@ -150,7 +146,6 @@ PSOut main(VSOutput input) : SV_TARGET
 			}
 
 			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb / cocValueSample; // It is premultiplied
-			total += cocValueSample;
 
 			valR += float4(texel.r * c0, texel.r * c1);
 			valG += float4(texel.g * c0, texel.g * c1);
@@ -160,7 +155,6 @@ PSOut main(VSOutput input) : SV_TARGET
 		output.TextureFarR = valR;
 		output.TextureFarG = valG;
 		output.TextureFarB = valB;
-		output.TextureSumWeights = 1.0f;
 		return output;
 	}
 	

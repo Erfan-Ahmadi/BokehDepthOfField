@@ -1102,6 +1102,7 @@ class GatherBasedBokeh: public IApp
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 			loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -1132,7 +1133,6 @@ class GatherBasedBokeh: public IApp
 			textureBarriers[0] = { pSwapChainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
 		}
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
