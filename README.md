@@ -21,9 +21,9 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 
 ## Implemented Techniques
 
-- [Circular Seperable Depth of Field](#CircularDOF)
-- [Practical Gather-based Bokeh Depth of Field](#GatherBased)
-- [Single Pass Depth of Field](#SinglePass)
+- [Circular Seperable Depth of Field](https://github.com/Erfan-Ahmadi/BokehDepthOfField/tree/master/src/CircularDOF) - [Resources](#CircularDOF)
+- [Practical Gather-based Bokeh Depth of Field](https://github.com/Erfan-Ahmadi/BokehDepthOfField/tree/master/src/GatherBasedBokeh) - [Resources](#GatherBased)
+- [Single Pass Depth of Field](https://github.com/Erfan-Ahmadi/BokehDepthOfField/tree/master/src/SinglePassBokeh) - [Resources](#SinglePass)
 
 ## Build
   - [x] Visual Studio 2017:
