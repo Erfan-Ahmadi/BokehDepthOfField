@@ -12,7 +12,7 @@ struct VSOutput
 
 struct PSOut
 {
-    float2 TextureNear			: SV_Target0;
+    float4 TextureNear			: SV_Target0;
     float4 TextureFar			: SV_Target1;
 };
 

@@ -13,7 +13,7 @@ struct PSOut
 {
     float2 DownresCoC			: SV_Target0;
     float4 DownresColor			: SV_Target1;
-    float4 DownresFarMulColor	: SV_Target3;
+    float4 DownresFarMulColor	: SV_Target2;
 };
 
 PSOut main(VSOutput input) : SV_TARGET

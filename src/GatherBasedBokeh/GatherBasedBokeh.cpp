@@ -138,8 +138,8 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
 
 Pipeline* pPipelineScene 														= NULL;
 Pipeline* pPipelineLight 														= NULL;
-Pipeline* pPipelineDownres 														= NULL;
 Pipeline* pPipelineCoC 															= NULL;
+Pipeline* pPipelineDownres 														= NULL;
 Pipeline* pPipelineMaxFilterNearCoCX 											= NULL;
 Pipeline* pPipelineMaxFilterNearCoCY 											= NULL;
 Pipeline* pPipelineBoxFilterNearCoCX 											= NULL;
@@ -165,8 +165,8 @@ DescriptorSet* pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsDownres[DESCRIPTOR_UPDATE_FREQ_COUNT] 			= { NULL };
 DescriptorSet* pDescriptorSetsNearMaxFilterX[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsNearMaxFilterY[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
-DescriptorSet* pDescriptorSetsBoxFilterNearX[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
-DescriptorSet* pDescriptorSetsBoxFilterNearY[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsNearBoxFilterX[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
+DescriptorSet* pDescriptorSetsNearBoxFilterY[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsComputationPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 	= { NULL };
 DescriptorSet* pDescriptorSetsFillingPass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
 DescriptorSet* pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_COUNT] 		= { NULL };
@@ -960,7 +960,7 @@ class GatherBasedBokeh: public IApp
 
 			cmdBindPipeline(cmd, pPipelineBoxFilterNearCoCX);
 			{
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsBoxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsNearBoxFilterX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -992,7 +992,7 @@ class GatherBasedBokeh: public IApp
 
 			cmdBindPipeline(cmd, pPipelineBoxFilterNearCoCY);
 			{
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsBoxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsNearBoxFilterY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -1584,9 +1584,9 @@ class GatherBasedBokeh: public IApp
 			}
 
 			DescriptorSetDesc setDesc = { pRootSignatureBoxFilterNearX, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearX[0]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearBoxFilterX[0]);
 			setDesc = { pRootSignatureBoxFilterNearX, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearX[1]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearBoxFilterX[1]);
 		}
 
 		// BoxFilter Near CoC Y
@@ -1606,9 +1606,9 @@ class GatherBasedBokeh: public IApp
 			}
 
 			DescriptorSetDesc setDesc = { pRootSignatureBoxFilterNearY, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearY[0]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearBoxFilterY[0]);
 			setDesc = { pRootSignatureBoxFilterNearY, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsBoxFilterNearY[1]);
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsNearBoxFilterY[1]);
 		}
 
 		// Computation
@@ -1703,10 +1703,10 @@ class GatherBasedBokeh: public IApp
 				removeDescriptorSet(pRenderer, pDescriptorSetsNearMaxFilterX[i]);
 			if (pDescriptorSetsNearMaxFilterY[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsNearMaxFilterY[i]);
-			if (pDescriptorSetsBoxFilterNearX[i])
-				removeDescriptorSet(pRenderer, pDescriptorSetsBoxFilterNearX[i]);
-			if (pDescriptorSetsBoxFilterNearY[i])
-				removeDescriptorSet(pRenderer, pDescriptorSetsBoxFilterNearY[i]);
+			if (pDescriptorSetsNearBoxFilterX[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsNearBoxFilterX[i]);
+			if (pDescriptorSetsNearBoxFilterY[i])
+				removeDescriptorSet(pRenderer, pDescriptorSetsNearBoxFilterY[i]);
 			if (pDescriptorSetsComputationPass[i])
 				removeDescriptorSet(pRenderer, pDescriptorSetsComputationPass[i]);
 			if (pDescriptorSetsFillingPass[i])
@@ -1805,7 +1805,7 @@ class GatherBasedBokeh: public IApp
 				params[0].pName = "NearCoCTexture";
 				params[0].ppTextures = &pRenderTargetFilterNearCoCFinal[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsBoxFilterNearX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					pDescriptorSetsNearBoxFilterX[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
 					params);
 			}
 		}
@@ -1818,7 +1818,7 @@ class GatherBasedBokeh: public IApp
 				params[0].pName = "NearCoCTexture";
 				params[0].ppTextures = &pRenderTargetFilterNearCoC[i]->pTexture;
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsBoxFilterNearY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
+					pDescriptorSetsNearBoxFilterY[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1,
 					params);
 			}
 		}
@@ -2306,6 +2306,7 @@ class GatherBasedBokeh: public IApp
 	void RemovePipelines()
 	{
 		removePipeline(pRenderer, pPipelineScene);
+		removePipeline(pRenderer, pPipelineLight);
 		removePipeline(pRenderer, pPipelineCoC);
 		removePipeline(pRenderer, pPipelineDownres);
 		removePipeline(pRenderer, pPipelineMaxFilterNearCoCX);
