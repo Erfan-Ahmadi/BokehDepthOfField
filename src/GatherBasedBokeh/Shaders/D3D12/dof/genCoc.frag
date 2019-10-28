@@ -6,23 +6,20 @@ struct VSOutput
 
 SamplerState	samplerLinear	: register(s0);
 SamplerState	samplerPoint	: register(s1);
+
 Texture2D		DepthTexture	: register(t0, UPDATE_FREQ_PER_FRAME);
 
 cbuffer UniformDOF : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float	maxRadius;
 	float	blend;
-	float	nb;
-	float	ne;
-	float	fb;
-	float	fe;	
+	float	nearBegin;
+	float	nearEnd;
+	float	farBegin;
+	float	farEnd;	
 	float2 projParams;
 };
 
-struct PSOut
-{
-    float2 COC : SV_Target0;
-};
 
 float LinearizeDepth(float depth)
 {
@@ -30,23 +27,24 @@ float LinearizeDepth(float depth)
     return 2.0 * zNear * zFar / (zFar + zNear - z_n * (zFar - zNear));
 }
 
-float DepthNDCToView(float depth_ndc)
+float2 main(VSOutput input): SV_Target
 {
-	return -projParams.y / (depth_ndc + projParams.x);
-}
+	float depth_ndc = DepthTexture.Sample(samplerPoint, input.UV).x;
+	float depth = LinearizeDepth(depth_ndc);
+	
+	float nearCOC = 0.0f;
+	if (depth < nearEnd)
+		nearCOC = 1.0f/(nearBegin - nearEnd)*depth + -nearEnd/(nearBegin - nearEnd);
+	else if (depth < nearBegin)
+		nearCOC = 1.0f;
+	nearCOC = saturate(nearCOC);
+	
+	float farCOC = 1.0f;
+	if (depth < farBegin)
+		farCOC = 0.0f;
+	else if (depth < farEnd)
+		farCOC = 1.0f/(farEnd - farBegin)*depth + -farBegin/(farEnd - farBegin);
+	farCOC = saturate(farCOC);
 
-PSOut main(VSOutput input) : SV_TARGET
-{
-	PSOut output;
-
-	float depth = DepthTexture.Sample(samplerPoint, input.UV).x;
-
-	float depth_linearized = LinearizeDepth(depth);
-
-	float r = (ne - depth_linearized) / (ne - nb);
-	float g = (depth_linearized - fb) / (fe - fb);
-
-	output.COC = float2(r, g);
-
-    return output;
+	return float2(nearCOC, farCOC);
 }
