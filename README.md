@@ -11,8 +11,8 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 ## Sample Real Camera Effects
 
 <p align="center">
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/night.jpg" alt="" width="600"/>
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/subway.jpg" alt="" width="600"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/newyork_maybe.jpg" alt="" width="400"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/beauty.jpg" alt="" width="400"/>
 </p>
 
 ## Real-Time Bokeh Screen Shots
