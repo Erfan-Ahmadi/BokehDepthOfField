@@ -23,10 +23,10 @@ bool bToggleMicroProfiler			= false;
 bool bPrevToggleMicroProfiler		= false;
 
 constexpr float gNear				= 0.1f;
-constexpr float gFar				= 3000.0f;
+constexpr float gFar				= 300.0f;
 
-static float gFocalPlane			= 380;
-static float gFocalRange			= 160;
+static float gFocalPlaneDistance	= 60;
+static float gFocalTransitionRange	= 10;
 
 constexpr size_t gPointLights		= 8;
 constexpr bool gPauseLights			= false;
@@ -165,6 +165,7 @@ RootSignature* pRootSignatureCompositePass 										= NULL;
 Sampler* pSamplerLinear;
 Sampler* pSamplerLinearClampEdge;
 Sampler* pSamplerPoint;
+Sampler* pSamplerAnisotropic;
 
 RenderTarget* pDepthBuffer;
 
@@ -446,13 +447,12 @@ class CircularDOF: public IApp
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
-		pGui->AddWidget(SliderFloatWidget("Focal Plane", &gFocalPlane, gNear, gFar, 10.0, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Focal Range", &gFocalRange, 0, 1000, 10.0f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Plane Distance", &gFocalPlaneDistance, gNear, gFar, 10.0, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Transition Range", &gFocalTransitionRange, 0, 1000, 10.0f, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 2, 0.11f, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
-
-		CameraMotionParameters cmp { 800.0f, 800.0f, 1000.0f };
+		CameraMotionParameters cmp { 100.0f, 100.0f, 500.0f };
 		vec3                   camPos { 100.0f, 25.0f, 0.0f };
 		vec3                   lookAt { 0 };
 
@@ -556,20 +556,20 @@ class CircularDOF: public IApp
 
 		AddPipelines();
 
-		vec3 midpoint = vec3(-60.5189209, 651.495361, 38.6905518);
-		pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
-		pCameraController->lookAt(midpoint - vec3(0, 450, 0));
+		pCameraController->moveTo(vec3(0, 20, 0));
+		pCameraController->lookAt(vec3(-5, 20, 0));
 
 		PrepareDescriptorSets();
 
 		for (int i = 0; i < gPointLights; ++i)
 		{
-			pointLights[i].attenuationParams = float3 { 0.4f, 0.001f, 0.0001f };
-			pointLights[i].ambient = float3 { 0.03f, 0.03f, 0.03f };
-			pointLights[i].position = float3 { 1000.0f - 350.0f * i, (rand() % 400) * 1.0f,  (rand() % 300) - 150.0f };
+			pointLights[i].attenuationParams = float3 { 1.0f, 0.045f, 0.0075f };
+			pointLights[i].ambient = float3 { 0.3f, 0.3f, 0.3f };
+			pointLights[i].position = float3 { 100.0f - 50.0f * i, (rand() % 40) * 1.0f,  (rand() % 30) - 15.0f };
 			pointLights[i].diffuse = float3 { (rand() % 255) / 255.0f, (rand() % 255) / 255.0f, (rand() % 255) / 255.0f };
 			pointLights[i].specular = pointLights[i].diffuse;
 		}
+
 
 		return true;
 	}
@@ -617,8 +617,12 @@ class CircularDOF: public IApp
 
 		viewMat.setTranslation(vec3(0));
 
-		gUniformDataDOF.fb = gFocalPlane + gFocalRange;
-		gUniformDataDOF.ne = gFocalPlane - gFocalRange;
+		gUniformDataDOF.nb = gFocalPlaneDistance - gFocalTransitionRange;
+		if (gUniformDataDOF.nb < 0.0f)
+			gUniformDataDOF.nb = 0.0f;
+		gUniformDataDOF.ne = gFocalPlaneDistance;
+		gUniformDataDOF.fb = gFocalPlaneDistance;
+		gUniformDataDOF.fe= gFocalPlaneDistance + gFocalTransitionRange;
 
 		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
 
@@ -1087,6 +1091,15 @@ class CircularDOF: public IApp
 						ADDRESS_MODE_CLAMP_TO_EDGE,
 						ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerPoint);
+
+		samplerDesc = { FILTER_LINEAR,
+						FILTER_LINEAR,
+						MIPMAP_MODE_LINEAR,
+						ADDRESS_MODE_REPEAT,
+						ADDRESS_MODE_REPEAT,
+						ADDRESS_MODE_REPEAT,
+						0, 1.0f };
+		addSampler(pRenderer, &samplerDesc, &pSamplerAnisotropic);
 	}
 
 	void RemoveSamplers()
@@ -1094,6 +1107,7 @@ class CircularDOF: public IApp
 		removeSampler(pRenderer, pSamplerLinear);
 		removeSampler(pRenderer, pSamplerLinearClampEdge);
 		removeSampler(pRenderer, pSamplerPoint);
+		removeSampler(pRenderer, pSamplerAnisotropic);
 	}
 
 	// Sync Objects
@@ -1271,8 +1285,8 @@ class CircularDOF: public IApp
 	{
 		// HDR
 		{
-			const char* pStaticSamplerNames [] = { "samplerLinear" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear };
+			const char* pStaticSamplerNames [] = { "samplerAnisotropic" };
+			Sampler* pStaticSamplers [] = { pSamplerAnisotropic };
 			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[2] = { pShaderBasic, pShaderLight };
@@ -2254,7 +2268,9 @@ class CircularDOF: public IApp
 		}
 
 		// Update Instance Data
-		gSponzaSceneData.WorldMatrix = mat4::identity() * mat4::scale(Vector3(1.0f));
+		gSponzaSceneData.WorldMatrix =
+			mat4::identity() *
+			mat4::scale(Vector3(0.1f));
 
 		//set constant buffer for sponza
 		{
