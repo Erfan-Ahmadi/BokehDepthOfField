@@ -19,9 +19,11 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 
 - None Yet :)
 
-## Techniques
+## Implemented Techniques
 
-- [x] [Circular Depth of Field (Kleber Garcia)](#Resources)
+- [Circular Seperable Depth of Field](#CircularDOF)
+- [Practical Gather-based Bokeh Depth of Field](#GatherBased)
+- [Single Pass Depth of Field](#SinglePass)
 
 ## Build
   - [x] Visual Studio 2017:
@@ -36,13 +38,18 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 
 Report any bug on your devices with most detail [here](https://github.com/Erfan-Ahmadi/BokehDepthOfField/issues)
 
-## <a name="Resources"></a> Resources 
+## Resources 
 
 All Bokeh Links and Book Chapters gathered for R&D are in [this github gist](https://gist.github.com/Erfan-Ahmadi/e27842ce9daa163ec10e28ee1fc72659); for detailed resources and links see below:
 
-- Circular Depth of Field (Kleber Garcia)
+- <a name="CircularDOF"></a>Circular Depth of Field (Kleber Garcia)
   - [Circular Separable Convolution Depth of Field Paper - Keleber Garcia](https://github.com/kecho/CircularDofFilterGenerator/blob/master/circulardof.pdf)
   - [Circularly Symmetric Convolution and Lens Blur - Olli Niemitalo](http://yehar.com/blog/?p=1495)
+- <a name="GatherBased"></a>GPU Zen (Wolfgang Engel) : Screen Space/Practical Gather-based Bokeh Depth of Field
+  - [Book Amazon](https://www.amazon.com/GPU-Zen-Advanced-Rendering-Techniques-ebook/dp/B0711SD1DW)
+  - [GitHub](https://github.com/wolfgangfengel/GPUZen)
+- <a name="SinglePass"></a>[Bokeh depth of field in a single pass - Dennis Gustafsson](http://blog.tuxedolabs.com/2018/05/04/bokeh-depth-of-field-in-single-pass.html)
+  
 
 ## Built and Tested Devices
 
