@@ -1,6 +1,6 @@
 # Bokeh Depth Of Field
 
-Implementing Different Algorithms to mimic Bokeh Depth Of Field: A Physical Camera Effect created due to Aperture size and shape
+Implementing Different Algorithms to mimic Bokeh Depth Of Field: A Physical Camera Effect created due to Focal Length, Aperture size, shape
 
 This Project is using [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge), a cross-platform rendering, and targeted for these devices: PC, Android, macOS, IOS, IPad OS devices.
 
