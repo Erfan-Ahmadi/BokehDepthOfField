@@ -97,12 +97,6 @@ struct PointLight
 	#endif
 };
 
-struct LightData
-{
-	int numPointLights;
-	float3 viewPos;
-};
-
 struct
 {
 	float3 position[gPointLights];
@@ -212,7 +206,6 @@ Buffer* pUniformBuffersProjView[gImageCount] 									= { NULL };
 Buffer* pUniformBuffersDOF[gImageCount] 										= { NULL };
 
 Buffer* pPointLightsBuffer														= NULL;
-Buffer* pLightDataBuffer														= NULL;
 Buffer* pInstancePositionBuffer													= NULL;
 Buffer* pInstanceColorBuffer													= NULL;
 
@@ -222,7 +215,6 @@ SceneData			gSponzaSceneData;
 MeshBatch* gLightMesh;
 
 PointLight			pointLights[gPointLights];
-LightData			lightData;
 
 //--------------------------------------------------------------------------------------------
 // Sponza Data
@@ -642,8 +634,6 @@ class CircularDOF: public IApp
 
 		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
 
-		lightData.numPointLights = gPointLights;
-
 		for (int i = 0; i < gPointLights; ++i)
 		{
 			lightInstancedata.position[i] = pointLights[i].position;
@@ -686,9 +676,6 @@ class CircularDOF: public IApp
 		updateResource(&uniformDOF);
 
 		// Update Light uniform buffers
-		BufferUpdateDesc lightBuffUpdate = { pLightDataBuffer, &lightData };
-		updateResource(&lightBuffUpdate);
-
 		BufferUpdateDesc pointLightBuffUpdate = { pPointLightsBuffer, &pointLights };
 		updateResource(&pointLightBuffUpdate);
 
@@ -1282,18 +1269,6 @@ class CircularDOF: public IApp
 			}
 		}
 
-		// Light Uniform Buffer
-		{
-			BufferLoadDesc bufferDesc = {};
-			bufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			bufferDesc.mDesc.mSize = sizeof(lightData);
-			bufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			bufferDesc.pData = NULL;
-			bufferDesc.ppBuffer = &pLightDataBuffer;
-			addResource(&bufferDesc);
-		}
-
 		// PointLights Structured Buffer
 		{
 			BufferLoadDesc bufferDesc = {};
@@ -1333,7 +1308,6 @@ class CircularDOF: public IApp
 		}
 
 		removeResource(pInstancePositionBuffer);
-		removeResource(pLightDataBuffer);
 		removeResource(pPointLightsBuffer);
 	}
 
@@ -1673,9 +1647,7 @@ class CircularDOF: public IApp
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
 				params[1].pName = "PointLightsData";
 				params[1].ppBuffers = &pPointLightsBuffer;
-				params[2].pName = "LightData";
-				params[2].ppBuffers = &pLightDataBuffer;
-				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2, params);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
 			}
 		}
 

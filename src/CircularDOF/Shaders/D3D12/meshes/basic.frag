@@ -54,9 +54,17 @@ PSOut main(PsIn input) : SV_TARGET
 	
 	float3 albedo = textureMaps[albedoMap].Sample(samplerAnisotropic, input.uv).rgb;
 
-	for(int i = 0; i < NUM_LIGHTS; ++i)
-		result += calculatePointLight(PointLights[i], normal, input.pos.xyz, albedo);
+	//for(int i = 0; i < NUM_LIGHTS; ++i)
+	//	result += calculatePointLight(PointLights[i], normal, input.pos.xyz, albedo);
 		
+	float3 pointToLight = -normalize(float3(-1.0f, -1.0f, -1.0f));
+	float NdotL = saturate(dot(pointToLight, normalize(input.normal)));
+	
+	float lighting = NdotL;
+	lighting = 4.0f*pow(lighting, 4.0f) + 0.1f;
+	
+	result += lighting * albedo;
+
     output.color = float4(result, 1.0f);
 
 	return output;

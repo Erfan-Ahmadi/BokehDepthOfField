@@ -1722,7 +1722,7 @@ class GatherBasedBokeh: public IApp
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
 				params[1].pName = "PointLightsData";
 				params[1].ppBuffers = &pPointLightsBuffer;
-				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2, params);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
 			}
 		}
 
@@ -2623,9 +2623,9 @@ class GatherBasedBokeh: public IApp
 
 		// Update Instance Data
 
-		gSponzaSceneData.WorldMatrix = 
-				mat4::identity() *
-				mat4::scale(Vector3(0.1f));
+		gSponzaSceneData.WorldMatrix =
+			mat4::identity() *
+			mat4::scale(Vector3(0.1f));
 
 		//set constant buffer for sponza
 		{
@@ -2707,9 +2707,7 @@ class GatherBasedBokeh: public IApp
 			removeResource(pMaterialTexturesSponza[i]);
 
 		removeResource(gLightMesh->pIndicesStream);
-		//removeResource(gLightMesh->pNormalStream);
 		removeResource(gLightMesh->pPositionStream);
-		//removeResource(gLightMesh->pUVStream);
 	}
 };
 
