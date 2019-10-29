@@ -27,12 +27,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\boxfilterNearCoC.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\composite.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\downsample.frag" />
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\filterNearCoC.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\genCoc.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\horizontalDof.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\image.vert" />
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\maxfilterNearCoC.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.frag" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.vert" />
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\light.frag" />

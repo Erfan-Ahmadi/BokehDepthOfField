@@ -42,9 +42,6 @@
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\downsample.frag">
       <Filter>Shaders\D3D12\dof</Filter>
     </None>
-    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\filterNearCoC.frag">
-      <Filter>Shaders\D3D12\dof</Filter>
-    </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\genCoc.frag">
       <Filter>Shaders\D3D12\dof</Filter>
     </None>
@@ -68,6 +65,12 @@
     </None>
     <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\meshes\basic.frag">
       <Filter>Shaders\D3D12\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\maxfilterNearCoC.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
+    </None>
+    <None Include="..\..\..\src\CircularDOF\Shaders\D3D12\dof\boxfilterNearCoC.frag">
+      <Filter>Shaders\D3D12\dof</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

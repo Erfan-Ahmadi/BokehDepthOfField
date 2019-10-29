@@ -109,7 +109,7 @@ Texture2D		TextureNearR		: register(t4, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureNearG		: register(t5, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureNearB		: register(t6, UPDATE_FREQ_PER_FRAME);
 Texture2D		TextureColor		: register(t7, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureWeights		: register(t8, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearCoC		: register(t8, UPDATE_FREQ_PER_FRAME);
 
 float2 multComplex(float2 p, float2 q)
 {
@@ -124,19 +124,18 @@ float4 main(VSOutput input) : SV_TARGET
 
 	float4 color = (TextureColor.Sample(samplerLinear, input.UV));
 	
-	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
+	float cocValueFar = TextureCoC.Sample(samplerPoint, input.UV).g;
+	float cocValueNear = TextureNearCoC.Sample(samplerPoint, input.UV).r;
 
 	float4 filteredColorFar = float4(0, 0, 0, 0);
 	float4 filteredColorNear = float4(0, 0, 0, 0);
 
-	if(cocValue.g != 0)
+	if(cocValueFar > 0)
 	{
 		float4 valR = float4(0, 0, 0, 0);
 		float4 valG = float4(0, 0, 0, 0);
 		float4 valB = float4(0, 0, 0, 0);
 	
-		float weightValue = 0;
-
 		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
 		{
 			int index = i - KERNEL_RADIUS;
@@ -147,13 +146,9 @@ float4 main(VSOutput input) : SV_TARGET
 			if(cocValueSample == 0)
 			{
 				coords = input.UV;
-				cocValueSample = cocValue.g;
+				cocValueSample = cocValueFar;
 			}
 			
-			float weightValueSample = (TextureWeights.Sample(samplerPoint, coords).r);
-
-			weightValue += weightValueSample * KERNEL_COUNT;
-
 			float4 imageTexelR = TextureFarR.Sample(samplerLinear, coords);  
 			float4 imageTexelG = TextureFarG.Sample(samplerLinear, coords);  
 			float4 imageTexelB = TextureFarB.Sample(samplerLinear, coords);  
@@ -171,15 +166,13 @@ float4 main(VSOutput input) : SV_TARGET
 			valB.zw += multComplex(imageTexelB.zw, c1);   
 		}
 
-		weightValue /= (KERNEL_COUNT * KERNEL_COUNT);
-	
 		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_2) + dot(valR.zw, Kernel1Weights_RealX_ImY_2);
 		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_2) + dot(valG.zw, Kernel1Weights_RealX_ImY_2);
 		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_2) + dot(valB.zw, Kernel1Weights_RealX_ImY_2);
-		filteredColorFar = float4((float3(redChannel, greenChannel, blueChannel) / (weightValue)), w);
-		color = lerp(color, filteredColorFar, saturate(cocValue.g * 4));
+		filteredColorFar = float4((float3(redChannel, greenChannel, blueChannel)), w);
 	}
-	else if(cocValue.r != 0)
+	
+	if(cocValueNear > 0)
 	{	
 		float2 valR = float4(0, 0, 0, 0);
 		float2 valG = float4(0, 0, 0, 0);
@@ -188,7 +181,7 @@ float4 main(VSOutput input) : SV_TARGET
 		for (int i = 0; i <= KERNEL_RADIUS * 2; ++i)
 		{
 			int index = i - KERNEL_RADIUS;
-			float2 coords = input.UV + step * float2(0.0, float(index)) * cocValue.r;
+			float2 coords = input.UV + step * float2(0.0, float(index)) * maxRadius;
 			float4 imageTexelR = TextureNearR.Sample(samplerLinear, coords);  
 			float4 imageTexelG = TextureNearG.Sample(samplerLinear, coords);  
 			float4 imageTexelB = TextureNearB.Sample(samplerLinear, coords);  
@@ -203,11 +196,11 @@ float4 main(VSOutput input) : SV_TARGET
 		float redChannel   = dot(valR.xy, Kernel0Weights_RealX_ImY_1);
 		float greenChannel = dot(valG.xy, Kernel0Weights_RealX_ImY_1);
 		float blueChannel  = dot(valB.xy, Kernel0Weights_RealX_ImY_1);
-		filteredColorNear = float4(sqrt(float3(redChannel, greenChannel, blueChannel)), w);
+		filteredColorNear = float4(float3(redChannel, greenChannel, blueChannel), w);
 	}
 	
-	if(cocValue.r > 0.99f)
-		color = lerp(color, filteredColorNear, 0.0f);
+	color = lerp(color, filteredColorFar, saturate(cocValueFar * 4));
+	color = lerp(color, filteredColorNear, saturate(cocValueNear * 4));
 
 	return color;
 }

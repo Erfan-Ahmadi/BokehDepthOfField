@@ -28,7 +28,7 @@ constexpr float gFar				= 300.0f;
 static float gFocalPlaneDistance	= 60;
 static float gFocalTransitionRange	= 10;
 
-constexpr size_t gPointLights		= 8;
+constexpr size_t gPointLights		= 4;
 constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ RenderTarget* pRenderTargetFar[gImageCount]										= { NULL }; // FAR/4
 RenderTarget* pRenderTargetNear[gImageCount]									= { NULL }; // NEAR/4
 
 RenderTarget* pRenderTargetFarFilled[gImageCount]								= { NULL }; // FAR/4
-RenderTarget* pRenderTargetNearFilled[gImageCount]								= { NULL }; // NEAR/4
+RenderTarget* pRenderTargetNearFilled[gImageCount]								= { NULL }; // FAR/4
 
 RasterizerState* pRasterDefault 												= NULL;
 
@@ -1382,7 +1382,6 @@ class GatherBasedBokeh: public IApp
 		shaderDesc.mStages[0] = { "dof/image.vert", NULL, 0, FSR_SrcShaders };
 		shaderDesc.mStages[1] = { "dof/downsample.frag", NULL, 0, FSR_SrcShaders };
 		addShader(pRenderer, &shaderDesc, &pShaderDownres);
-
 
 
 		ShaderMacro    ShaderMacroMaxFilterCoC[1] =

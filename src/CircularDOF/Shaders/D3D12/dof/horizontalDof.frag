@@ -98,10 +98,12 @@ struct VSOutput
     float2 UV		: TEXCOORD0;
 };
 
-SamplerState	samplerLinear	: register(s0);
-SamplerState	samplerPoint	: register(s1);
-Texture2D		TextureColor	: register(t0, UPDATE_FREQ_PER_FRAME);
-Texture2D		TextureCoC		: register(t2, UPDATE_FREQ_PER_FRAME);
+SamplerState	samplerLinear		: register(s0);
+SamplerState	samplerPoint		: register(s1);
+
+Texture2D		TextureColor		: register(t0, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureCoC			: register(t1, UPDATE_FREQ_PER_FRAME);
+Texture2D		TextureNearCoC		: register(t2, UPDATE_FREQ_PER_FRAME);
 
 struct PSOut
 {
@@ -111,7 +113,6 @@ struct PSOut
     float2 TextureNearR			: SV_Target3;
     float2 TextureNearG			: SV_Target4;
     float2 TextureNearB			: SV_Target5;
-    float  TextureWeights		: SV_Target6;
 };
 
 PSOut main(VSOutput input) : SV_TARGET
@@ -121,10 +122,11 @@ PSOut main(VSOutput input) : SV_TARGET
 	uint w, h;
 	TextureColor.GetDimensions(w, h);
 	float2 step = 1.0f / float2(w, h);
+	
+	float cocValueFar = TextureCoC.Sample(samplerPoint, input.UV).g;
+	float cocValueNear = TextureNearCoC.Sample(samplerPoint, input.UV).r;
 
-	float2 cocValue = TextureCoC.Sample(samplerPoint, input.UV).rg;
-
-	if(cocValue.g != 0)
+	if(cocValueFar > 0)
 	{	
 		float4 valR = float4(0, 0, 0, 0);
 		float4 valG = float4(0, 0, 0, 0);
@@ -145,11 +147,10 @@ PSOut main(VSOutput input) : SV_TARGET
 			if(cocValueSample == 0)
 			{
 				coords = input.UV;
-				cocValueSample = cocValue.g;
+				cocValueSample = cocValueFar;
 			}
 
-			total += cocValueSample;
-			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb; // It is premultiplied
+			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb;
 
 			valR += float4(texel.r * c0, texel.r * c1);
 			valG += float4(texel.g * c0, texel.g * c1);
@@ -159,13 +160,40 @@ PSOut main(VSOutput input) : SV_TARGET
 		output.TextureFarR = valR;
 		output.TextureFarG = valG;
 		output.TextureFarB = valB;
-		output.TextureWeights = total / (KERNEL_COUNT);
+		return output;
+	}
+
+	if(cocValueNear > 0)
+	{
+		float2 valR = float2(0, 0);
+		float2 valG = float2(0, 0);
+		float2 valB = float2(0, 0);
+
+		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
+		{
+			int index = i - KERNEL_RADIUS;
+			float2 coords = input.UV + step * float2(float(index), 0) * maxRadius;
+
+			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_1[index + KERNEL_RADIUS].xy;
+
+			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb;
+
+			valR += float2(texel.r * c0);
+			valG += float2(texel.g * c0);
+			valB += float2(texel.b * c0);
+		}
+
+		output.TextureNearR = valR;
+		output.TextureNearG = valG;
+		output.TextureNearB = valB;
 		return output;
 	}
 	
-	output.TextureFarR = float4(0, 0, 0, 0);
-	output.TextureFarG = float4(0, 0, 0, 0);
-	output.TextureFarB = float4(0, 0, 0, 0);
-	output.TextureWeights = 1.0f;
+	output.TextureFarR	= float4(0, 0, 0, 0);
+	output.TextureFarG	= float4(0, 0, 0, 0);
+	output.TextureFarB	= float4(0, 0, 0, 0);
+	output.TextureNearR = float2(0, 0);
+	output.TextureNearG = float2(0, 0);
+	output.TextureNearB = float2(0, 0);
 	return output;
 }

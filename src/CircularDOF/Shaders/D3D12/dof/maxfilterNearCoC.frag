@@ -12,7 +12,7 @@ struct PSOut
     float FilteredNearCoC : SV_Target0;
 };
 
-#define RADIUS 2
+#define RADIUS 6
 
 PSOut main(VSOutput input) : SV_TARGET
 {
@@ -27,7 +27,18 @@ PSOut main(VSOutput input) : SV_TARGET
 	for(int i = 0; i <= RADIUS * 2; ++i)
 	{
 		int index = (i - RADIUS);
-        float2 coords = input.UV + step * float2(float(index), 0.0);
+
+		float2 coords;
+
+		if(HORIZONTAL)
+		{
+			coords = input.UV + step * float2(float(index), 0.0);
+		}
+		else
+		{
+			coords = input.UV + step * float2(0.0, float(index));
+		}
+
         float sample = NearCoCTexture.Sample(samplerLinear, coords).r;  
 		output.FilteredNearCoC = max(output.FilteredNearCoC, sample);
 	}
