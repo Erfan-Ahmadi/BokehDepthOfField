@@ -149,7 +149,7 @@ PSOut main(VSOutput input) : SV_TARGET
 			}
 
 			total += cocValueSample;
-			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb * (cocValueSample); // It is premultiplied
+			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb; // It is premultiplied
 
 			valR += float4(texel.r * c0, texel.r * c1);
 			valG += float4(texel.g * c0, texel.g * c1);

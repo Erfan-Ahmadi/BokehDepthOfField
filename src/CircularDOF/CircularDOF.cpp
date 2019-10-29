@@ -1657,7 +1657,7 @@ class CircularDOF: public IApp
 			RenderTargetDesc rtDesc = {};
 			rtDesc.mArraySize = 1;
 			rtDesc.mClearValue = clearVal;
-			rtDesc.mFormat = TinyImageFormat_R16_SFLOAT;
+			rtDesc.mFormat = TinyImageFormat_R8_UNORM;
 			rtDesc.mDepth = 1;
 			rtDesc.mWidth = pRenderTargetCoCDowres[0]->mDesc.mWidth;
 			rtDesc.mHeight = pRenderTargetCoCDowres[0]->mDesc.mHeight;

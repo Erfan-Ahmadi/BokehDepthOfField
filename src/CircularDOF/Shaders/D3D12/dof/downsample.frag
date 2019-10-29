@@ -56,7 +56,7 @@ PSOut main(VSOutput input) : SV_TARGET
 	colorMulCOCFar *= coc.g;
 	
     output.DownresCoC = coc;
-    output.DownresColor = color;
+    output.DownresColor = color * coc.g;
 
     return output;
 }
