@@ -111,6 +111,7 @@ struct PSOut
     float2 TextureNearR			: SV_Target3;
     float2 TextureNearG			: SV_Target4;
     float2 TextureNearB			: SV_Target5;
+    float  TextureWeights		: SV_Target6;
 };
 
 PSOut main(VSOutput input) : SV_TARGET
@@ -129,6 +130,8 @@ PSOut main(VSOutput input) : SV_TARGET
 		float4 valG = float4(0, 0, 0, 0);
 		float4 valB = float4(0, 0, 0, 0);
 
+		float total = 0;
+
 		for(int i = 0; i <= KERNEL_RADIUS * 2; i++)
 		{
 			int index = i - KERNEL_RADIUS;
@@ -145,7 +148,8 @@ PSOut main(VSOutput input) : SV_TARGET
 				cocValueSample = cocValue.g;
 			}
 
-			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb / cocValueSample; // It is premultiplied
+			total += cocValueSample;
+			float3 texel = TextureColor.Sample(samplerLinear, coords).rgb * (cocValueSample); // It is premultiplied
 
 			valR += float4(texel.r * c0, texel.r * c1);
 			valG += float4(texel.g * c0, texel.g * c1);
@@ -155,11 +159,13 @@ PSOut main(VSOutput input) : SV_TARGET
 		output.TextureFarR = valR;
 		output.TextureFarG = valG;
 		output.TextureFarB = valB;
+		output.TextureWeights = total / (KERNEL_COUNT);
 		return output;
 	}
 	
 	output.TextureFarR = float4(0, 0, 0, 0);
 	output.TextureFarG = float4(0, 0, 0, 0);
 	output.TextureFarB = float4(0, 0, 0, 0);
+	output.TextureWeights = 1.0f;
 	return output;
 }
