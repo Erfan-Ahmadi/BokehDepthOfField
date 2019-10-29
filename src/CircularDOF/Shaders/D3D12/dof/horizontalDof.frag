@@ -125,6 +125,13 @@ PSOut main(VSOutput input) : SV_TARGET
 	
 	float cocValueFar = TextureCoC.Sample(samplerPoint, input.UV).g;
 	float cocValueNear = TextureNearCoC.Sample(samplerPoint, input.UV).r;
+	
+	output.TextureFarR	= float4(0, 0, 0, 0);
+	output.TextureFarG	= float4(0, 0, 0, 0);
+	output.TextureFarB	= float4(0, 0, 0, 0);
+	output.TextureNearR = float2(0, 0);
+	output.TextureNearG = float2(0, 0);
+	output.TextureNearB = float2(0, 0);
 
 	if(cocValueFar > 0)
 	{	
@@ -160,7 +167,6 @@ PSOut main(VSOutput input) : SV_TARGET
 		output.TextureFarR = valR;
 		output.TextureFarG = valG;
 		output.TextureFarB = valB;
-		return output;
 	}
 
 	if(cocValueNear > 0)
@@ -182,18 +188,11 @@ PSOut main(VSOutput input) : SV_TARGET
 			valG += float2(texel.g * c0);
 			valB += float2(texel.b * c0);
 		}
-
+		
 		output.TextureNearR = valR;
 		output.TextureNearG = valG;
 		output.TextureNearB = valB;
-		return output;
 	}
 	
-	output.TextureFarR	= float4(0, 0, 0, 0);
-	output.TextureFarG	= float4(0, 0, 0, 0);
-	output.TextureFarB	= float4(0, 0, 0, 0);
-	output.TextureNearR = float2(0, 0);
-	output.TextureNearG = float2(0, 0);
-	output.TextureNearB = float2(0, 0);
 	return output;
 }
