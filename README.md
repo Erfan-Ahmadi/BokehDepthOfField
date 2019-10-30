@@ -11,22 +11,28 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 ## Sample Real Camera Effects
 
 <p align="center">
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/newyork_maybe.jpg" alt="" width="400"/>
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/beauty.jpg" alt="" width="400"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/newyork_maybe.jpg" alt="" width="300"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/real/beauty.jpg" alt="" width="300"/>
 </p>
 
 ## Real-Time Bokeh Screen Shots
 
-- Circular Seperable Depth of Field
+- [Circular Seperable Depth of Field](https://github.com/Erfan-Ahmadi/BokehDepthOfField/tree/master/src/CircularDOF) 
 <p align="center">
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/circular-dof/1.jpg" alt="" width="500"/>
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/circular-dof/2.jpg" alt="" width="500"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/circular-dof/1.jpg" alt="" width="400"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/circular-dof/2.jpg" alt="" width="400"/>
 </p>
 
-- Practical Gather-based Bokeh Depth of Field
+- [Practical Gather-based Bokeh Depth of Field](https://github.com/Erfan-Ahmadi/BokehDepthOfField/tree/master/src/GatherBasedBokeh)
 <p align="center">
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/1.jpg" alt="" width="500"/>
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/3.jpg" alt="" width="500"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/1.jpg" alt="" width="400"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/3.jpg" alt="" width="400"/>
+</p>
+
+- [Single Pass Depth of Field](https://github.com/Erfan-Ahmadi/BokehDepthOfField/tree/master/src/SinglePassBokeh)
+<p align="center">
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/single-pass/2.jpg" alt="" width="400"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/single-pass/4.jpg" alt="" width="400"/>
 </p>
 
 ## Implemented Techniques
