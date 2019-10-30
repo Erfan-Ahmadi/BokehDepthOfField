@@ -572,7 +572,7 @@ class CircularDOF: public IApp
 
 		for (int i = 0; i < gPointLights; ++i)
 		{
-			pointLights[i].attenuationParams = float3 { 1.0f, 0.025f, 0.0065f };
+			pointLights[i].attenuationParams = float3 { 1.0f,  0.027f,  0.0028f };
 			pointLights[i].ambient = float3 { 0.5f, 0.5f, 0.5f };
 			pointLights[i].position = float3 { 100.0f - 50.0f * i, (rand() % 40) * 1.0f,  (rand() % 30) - 15.0f };
 			pointLights[i].diffuse = float3 { (rand() % 255) / 255.0f, (rand() % 255) / 255.0f, (rand() % 255) / 255.0f };
@@ -1647,7 +1647,7 @@ class CircularDOF: public IApp
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
 				params[1].pName = "PointLightsData";
 				params[1].ppBuffers = &pPointLightsBuffer;
-				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2, params);
 			}
 		}
 

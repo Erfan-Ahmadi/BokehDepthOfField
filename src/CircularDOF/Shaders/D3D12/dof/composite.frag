@@ -130,7 +130,7 @@ float4 main(VSOutput input) : SV_TARGET
 	float4 filteredColorFar = float4(0, 0, 0, 0);
 	float4 filteredColorNear = float4(0, 0, 0, 0);
 
-	if(cocValueFar > 0)
+	if (cocValueFar > 0)
 	{
 		float4 valR = float4(0, 0, 0, 0);
 		float4 valG = float4(0, 0, 0, 0);
@@ -172,7 +172,7 @@ float4 main(VSOutput input) : SV_TARGET
 		filteredColorFar = float4((float3(redChannel, greenChannel, blueChannel)), w);
 	}
 	
-	if(cocValueNear > 0)
+	if (cocValueNear > 0)
 	{	
 		float2 valR = float4(0, 0, 0, 0);
 		float2 valG = float4(0, 0, 0, 0);
@@ -182,6 +182,14 @@ float4 main(VSOutput input) : SV_TARGET
 		{
 			int index = i - KERNEL_RADIUS;
 			float2 coords = input.UV + step * float2(0.0, float(index)) * maxRadius;
+				
+			float cocValueSample = TextureNearCoC.Sample(samplerPoint, coords).r;	
+			if (cocValueSample == 0)
+			{
+				coords = input.UV;
+				cocValueSample = cocValueNear;
+			}
+
 			float4 imageTexelR = TextureNearR.Sample(samplerLinear, coords);  
 			float4 imageTexelG = TextureNearG.Sample(samplerLinear, coords);  
 			float4 imageTexelB = TextureNearB.Sample(samplerLinear, coords);  

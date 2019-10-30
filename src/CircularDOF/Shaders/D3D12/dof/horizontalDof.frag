@@ -179,6 +179,13 @@ PSOut main(VSOutput input) : SV_TARGET
 		{
 			int index = i - KERNEL_RADIUS;
 			float2 coords = input.UV + step * float2(float(index), 0) * maxRadius;
+					
+			float cocValueSample = TextureNearCoC.Sample(samplerPoint, coords).r;	
+			if(cocValueSample == 0)
+			{
+				coords = input.UV;
+				cocValueSample = cocValueNear;
+			}
 
 			float2 c0 = Kernel0_RealX_ImY_RealZ_ImW_1[index + KERNEL_RADIUS].xy;
 
