@@ -17,7 +17,7 @@ Texture2D		TextureColor	: register(t1, UPDATE_FREQ_PER_FRAME);
 
 static const float GOLDEN_ANGLE = 2.39996323f; 
 static const float MAX_BLUR_SIZE = 20.0f; 
-static const float RAD_SCALE = 2.0; // Smaller = nicer blur, larger = faster
+static const float RAD_SCALE = 1.5; // Smaller = nicer blur, larger = faster
 
 float getBlurSize(float2 coc)
 {
@@ -47,11 +47,9 @@ float4 main(VSOutput input) : SV_TARGET
 
 		float3 sampleCoC = TextureCoC.Sample(samplerPoint, tc).rgb;
 		float sampleSize = getBlurSize(sampleCoC);
-		
-		if (sampleSize == 0)
-			sampleSize = centerSize;
-		if (sampleSize > centerSize)
-			sampleSize = clamp(sampleSize, 0.0, centerSize*2.0);
+
+		//if (sampleSize > centerSize)
+		//	sampleSize = clamp(sampleSize, 0.0, centerSize*2.0);
 
 		float m = smoothstep(radius - 0.5f, radius + 0.5f, sampleSize);
 		color += lerp(color/total, sampleColor, m);
