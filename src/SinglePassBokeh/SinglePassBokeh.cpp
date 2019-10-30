@@ -809,6 +809,7 @@ class SinglePassBokeh: public IApp
 				cmdDraw(cmd, 3, 0);
 			}
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 
 			loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -840,10 +841,8 @@ class SinglePassBokeh: public IApp
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers);
 		}
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
-		
 
 		queueSubmit(pGraphicsQueue, allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 
