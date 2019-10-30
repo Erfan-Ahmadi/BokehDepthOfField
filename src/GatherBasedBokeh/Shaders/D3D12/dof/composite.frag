@@ -78,7 +78,7 @@ float4 main(VSOutput input) : SV_TARGET
 
 		dofFar /= weightsSum;
 
-		color = lerp(color, dofFar, blend * cocFar);
+		color = lerp(color, dofFar, saturate(4 * cocFar));
 	}
 
 	// Near
@@ -86,7 +86,7 @@ float4 main(VSOutput input) : SV_TARGET
 		float cocNear = TextureNearCoCBlur.Sample(samplerLinear, input.UV).x;
 		float4 dofNear = TextureNear_x4.Sample(samplerLinear, input.UV);
 
-		color = lerp(color, dofNear, blend * cocNear);
+		color = lerp(color, dofNear, saturate(4 * cocNear));
 	}
 	
 	return color;

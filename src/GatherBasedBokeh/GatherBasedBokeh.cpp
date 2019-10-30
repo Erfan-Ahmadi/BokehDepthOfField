@@ -28,7 +28,7 @@ constexpr float gFar				= 300.0f;
 static float gFocalPlaneDistance	= 60;
 static float gFocalTransitionRange	= 10;
 
-constexpr size_t gPointLights		= 4;
+constexpr size_t gPointLights		= 10;
 constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
@@ -460,7 +460,6 @@ class GatherBasedBokeh: public IApp
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 		pGui->AddWidget(SliderFloatWidget("Focal Plane Distance", &gFocalPlaneDistance, gNear, gFar, 10.0, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Focal Transition Range", &gFocalTransitionRange, 0, 1000, 10.0f, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 2, 0.11f, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 
@@ -568,17 +567,22 @@ class GatherBasedBokeh: public IApp
 
 		AddPipelines();
 
-		pCameraController->moveTo(vec3(0, 20, 0));
-		pCameraController->lookAt(vec3(-5, 20, 0));
+		pCameraController->moveTo(vec3(0, 89, 0));
+		pCameraController->lookAt(vec3(-5, 87, 0));
 
 		PrepareDescriptorSets();
 
 		for (int i = 0; i < gPointLights; ++i)
 		{
-			pointLights[i].attenuationParams = float3 { 1.0f, 0.045f, 0.0075f };
-			pointLights[i].ambient = float3 { 0.3f, 0.3f, 0.3f };
-			pointLights[i].position = float3 { 100.0f - 50.0f * i, (rand() % 40) * 1.0f,  (rand() % 30) - 15.0f };
-			pointLights[i].diffuse = float3 { (rand() % 255) / 255.0f, (rand() % 255) / 255.0f, (rand() % 255) / 255.0f };
+			pointLights[i].attenuationParams = float3 { 1.0f,  0.045f,  0.0075f };
+			pointLights[i].ambient = float3 { 0.1f, 0.1f, 0.1f };
+			pointLights[i].position = float3 { -62.0f + 37.5f * (i / 2), 87.8f,  (i % 2) ? 8.5f : -1.5f };
+
+			pointLights[i].diffuse = float3 {
+				3.0f * (rand() % 255) / 255.0f,
+				3.0f * (rand() % 255) / 255.0f,
+				3.0f * (rand() % 255) / 255.0f };
+
 			pointLights[i].specular = pointLights[i].diffuse;
 		}
 
@@ -755,7 +759,6 @@ class GatherBasedBokeh: public IApp
 			cmdBindPipeline(cmd, pPipelineScene);
 			{
 				// Draw sponza
-
 				struct MaterialMaps
 				{
 					uint mapIDs[1];
@@ -1722,7 +1725,7 @@ class GatherBasedBokeh: public IApp
 				params[0].ppBuffers = &pUniformBuffersProjView[i];
 				params[1].pName = "PointLightsData";
 				params[1].ppBuffers = &pPointLightsBuffer;
-				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 1, params);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 2, params);
 			}
 		}
 
@@ -1868,7 +1871,7 @@ class GatherBasedBokeh: public IApp
 				params[6].pName = "UniformDOF";
 				params[6].ppBuffers = &pUniformBuffersDOF[i];
 				updateDescriptorSet(pRenderer, i,
-					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 7,
+					pDescriptorSetsCompositePass[DESCRIPTOR_UPDATE_FREQ_PER_FRAME], 6,
 					params);
 			}
 		}
@@ -2647,7 +2650,7 @@ class GatherBasedBokeh: public IApp
 		{
 			AssimpImporter::Model sphereModel;
 			{
-				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/rubic.obj", &sphereModel))
+				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/geosphere.obj", &sphereModel))
 				{
 					return false;
 				}

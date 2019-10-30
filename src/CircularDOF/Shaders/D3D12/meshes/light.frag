@@ -13,6 +13,6 @@ struct PSOut
 PSOut main(VSOutput input) : SV_TARGET
 {
 	PSOut output;
-    output.color = float4(input.Color, 1.0f);
+    output.color = float4(input.Color * 4.0f, 1.0f);
 	return output;
 }
