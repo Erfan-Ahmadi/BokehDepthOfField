@@ -21,11 +21,9 @@ static const float RAD_SCALE = 2.0; // Smaller = nicer blur, larger = faster
 
 float getBlurSize(float2 coc)
 {
-	if(coc.g > 0.0f)
-		return coc.g * maxRadius;
-	return coc.r * maxRadius;
-	//float coc = clamp((1.0 / focusPoint - 1.0 / depth) * focusScale, -1.0, 1.0);
-	//return abs(coc) * MAX_BLUR_SIZE;
+	if(coc.r > 0.0f)
+		return coc.r * maxRadius * MAX_BLUR_SIZE;
+	return coc.g * maxRadius * MAX_BLUR_SIZE;
 }
 
 float4 main(VSOutput input) : SV_TARGET
@@ -37,9 +35,6 @@ float4 main(VSOutput input) : SV_TARGET
 	float3 color = TextureColor.Sample(samplerLinear, input.UV).rgb;
 	
 	float2 coc = TextureCoC.Sample(samplerPoint, input.UV).rg;
-	
-	//if(coc.g == 0 && coc.r == 0)
-	//	return float4(color, 1.0f);
 
 	float centerSize = getBlurSize(coc);
 
@@ -52,7 +47,9 @@ float4 main(VSOutput input) : SV_TARGET
 
 		float3 sampleCoC = TextureCoC.Sample(samplerPoint, tc).rgb;
 		float sampleSize = getBlurSize(sampleCoC);
-
+		
+		if (sampleSize == 0)
+			sampleSize = centerSize;
 		if (sampleSize > centerSize)
 			sampleSize = clamp(sampleSize, 0.0, centerSize*2.0);
 

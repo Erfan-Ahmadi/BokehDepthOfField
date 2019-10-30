@@ -212,7 +212,7 @@ Buffer* pInstanceColorBuffer													= NULL;
 cbPerPass			gUniformDataScene;
 UniformDataDOF		gUniformDataDOF;
 SceneData			gSponzaSceneData;
-MeshBatch* gLightMesh;
+MeshBatch*			gLightMesh;
 
 PointLight			pointLights[gPointLights];
 
@@ -565,10 +565,10 @@ class CircularDOF: public IApp
 
 		AddPipelines();
 
+		PrepareDescriptorSets();
+
 		pCameraController->moveTo(vec3(0, 89, 0));
 		pCameraController->lookAt(vec3(-5, 87, 0));
-
-		PrepareDescriptorSets();
 
 		for (int i = 0; i < gPointLights; ++i)
 		{

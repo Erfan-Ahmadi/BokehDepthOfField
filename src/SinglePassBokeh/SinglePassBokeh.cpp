@@ -23,12 +23,12 @@ bool bToggleMicroProfiler			= false;
 bool bPrevToggleMicroProfiler		= false;
 
 constexpr float gNear				= 0.1f;
-constexpr float gFar				= 3000.0f;
+constexpr float gFar				= 300.0f;
 
-static float gFocalPlane			= 380;
-static float gFocalRange			= 160;
+static float gFocalPlaneDistance	= 47;
+static float gFocalTransitionRange	= 4;
 
-constexpr size_t gPointLights		= 4;
+constexpr size_t gPointLights		= 8;
 constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
@@ -140,7 +140,7 @@ Shader* pShaderLight 															= NULL;
 
 // Depth of Field Shaders
 Shader* pShaderGenCoc 															= NULL;
-Shader* pShaderDOF 														= NULL;
+Shader* pShaderDOF 																= NULL;
 
 DescriptorSet* pDescriptorSetsScene[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
 DescriptorSet* pDescriptorSetsCoc[DESCRIPTOR_UPDATE_FREQ_COUNT] 				= { NULL };
@@ -153,6 +153,7 @@ RootSignature* pRootSignatureDOF 												= NULL;
 Sampler* pSamplerLinear;
 Sampler* pSamplerLinearClampEdge;
 Sampler* pSamplerPoint;
+Sampler* pSamplerAnisotropic;
 
 RenderTarget* pDepthBuffer;
 
@@ -420,13 +421,12 @@ class SinglePassBokeh: public IApp
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
-		pGui->AddWidget(SliderFloatWidget("Focal Plane", &gFocalPlane, gNear, gFar, 10.0, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Focal Range", &gFocalRange, 0, 1000, 10.0f, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 2, 0.11f, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 20, 0.1f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Plane Distance", &gFocalPlaneDistance, gNear, gFar, 1.0f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Transition Range", &gFocalTransitionRange, 0, 1000, 1.0f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 10, 0.11f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
-
-		CameraMotionParameters cmp { 800.0f, 800.0f, 1000.0f };
+		CameraMotionParameters cmp { 100.0f, 100.0f, 500.0f };
 		vec3                   camPos { 100.0f, 25.0f, 0.0f };
 		vec3                   lookAt { 0 };
 
@@ -530,18 +530,22 @@ class SinglePassBokeh: public IApp
 
 		AddPipelines();
 
-		vec3 midpoint = vec3(-60.5189209, 651.495361, 38.6905518);
-		pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
-		pCameraController->lookAt(midpoint - vec3(0, 450, 0));
-
 		PrepareDescriptorSets();
+
+		pCameraController->moveTo(vec3(0, 89, 0));
+		pCameraController->lookAt(vec3(-5, 87, 0));
 
 		for (int i = 0; i < gPointLights; ++i)
 		{
-			pointLights[i].attenuationParams = float3 { 1.0f,  0.0014f,  0.000007f };
-			pointLights[i].ambient = float3 { 0.015f, 0.015f, 0.015f };
-			pointLights[i].position = float3 { 1000.0f - 550.0f * i, (rand() % 400) * 1.0f,  (rand() % 300) - 150.0f };
-			pointLights[i].diffuse = float3 { (rand() % 255) / 255.0f, (rand() % 255) / 255.0f, (rand() % 255) / 255.0f };
+			pointLights[i].attenuationParams = float3 { 1.0f,  0.045f,  0.0075f };
+			pointLights[i].ambient = float3 { 0.1f, 0.1f, 0.1f };
+			pointLights[i].position = float3 { -62.0f + 37.5f * (i / 2), 87.8f,  (i % 2) ? 8.5f : -1.5f };
+
+			pointLights[i].diffuse = float3 {
+				3.0f * (rand() % 255) / 255.0f,
+				3.0f * (rand() % 255) / 255.0f,
+				3.0f * (rand() % 255) / 255.0f };
+
 			pointLights[i].specular = pointLights[i].diffuse;
 		}
 
@@ -591,8 +595,12 @@ class SinglePassBokeh: public IApp
 
 		viewMat.setTranslation(vec3(0));
 
-		gUniformDataDOF.fb = gFocalPlane + gFocalRange;
-		gUniformDataDOF.ne = gFocalPlane - gFocalRange;
+		gUniformDataDOF.nb = gFocalPlaneDistance - gFocalTransitionRange;
+		if (gUniformDataDOF.nb < 0.0f)
+			gUniformDataDOF.nb = 0.0f;
+		gUniformDataDOF.ne = gFocalPlaneDistance;
+		gUniformDataDOF.fb = gFocalPlaneDistance;
+		gUniformDataDOF.fe= gFocalPlaneDistance + gFocalTransitionRange;
 
 		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
 
@@ -844,7 +852,6 @@ class SinglePassBokeh: public IApp
 		flipProfiler();
 	}
 
-
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
@@ -925,6 +932,15 @@ class SinglePassBokeh: public IApp
 						ADDRESS_MODE_CLAMP_TO_EDGE,
 						ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerPoint);
+
+		samplerDesc = { FILTER_LINEAR,
+						FILTER_LINEAR,
+						MIPMAP_MODE_LINEAR,
+						ADDRESS_MODE_REPEAT,
+						ADDRESS_MODE_REPEAT,
+						ADDRESS_MODE_REPEAT,
+						0, 1.0f };
+		addSampler(pRenderer, &samplerDesc, &pSamplerAnisotropic);
 	}
 
 	void RemoveSamplers()
@@ -932,6 +948,7 @@ class SinglePassBokeh: public IApp
 		removeSampler(pRenderer, pSamplerLinear);
 		removeSampler(pRenderer, pSamplerLinearClampEdge);
 		removeSampler(pRenderer, pSamplerPoint);
+		removeSampler(pRenderer, pSamplerAnisotropic);
 	}
 
 	// Sync Objects
@@ -1095,8 +1112,8 @@ class SinglePassBokeh: public IApp
 	{
 		// HDR
 		{
-			const char* pStaticSamplerNames [] = { "samplerLinear" };
-			Sampler* pStaticSamplers [] = { pSamplerLinear };
+			const char* pStaticSamplerNames [] = { "samplerAnisotropic" };
+			Sampler* pStaticSamplers [] = { pSamplerAnisotropic };
 			uint        numStaticSamplers = 1;
 			{
 				Shader* shaders[2] = { pShaderBasic, pShaderLight };
@@ -1744,7 +1761,10 @@ class SinglePassBokeh: public IApp
 		}
 
 		// Update Instance Data
-		gSponzaSceneData.WorldMatrix = mat4::identity() * mat4::scale(Vector3(1.0f));
+
+		gSponzaSceneData.WorldMatrix =
+			mat4::identity() *
+			mat4::scale(Vector3(0.1f));
 
 		//set constant buffer for sponza
 		{
@@ -1766,7 +1786,7 @@ class SinglePassBokeh: public IApp
 		{
 			AssimpImporter::Model sphereModel;
 			{
-				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/rubic.obj", &sphereModel))
+				if (!importer.ImportModel("../../../../art/Meshes/lowpoly/geosphere.obj", &sphereModel))
 				{
 					return false;
 				}
