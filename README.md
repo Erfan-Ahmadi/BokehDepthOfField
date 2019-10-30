@@ -18,11 +18,15 @@ To mimic the physical camera in real-time in an efficient way to reduce postfx o
 ## Real-Time Bokeh Screen Shots
 
 - Circular Seperable Depth of Field
+<p align="center">
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/circular-dof/1.jpg" alt="" width="500"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/circular-dof/2.jpg" alt="" width="500"/>
+</p>
 
 - Practical Gather-based Bokeh Depth of Field
 <p align="center">
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/1.jpg" alt="" width="400"/>
-  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/3.jpg" alt="" width="400"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/1.jpg" alt="" width="500"/>
+  <img src="https://github.com/Erfan-Ahmadi/BokehDepthOfField/raw/master/screenshots/simulation/gather-based/3.jpg" alt="" width="500"/>
 </p>
 
 ## Implemented Techniques
