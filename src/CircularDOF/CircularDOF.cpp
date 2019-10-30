@@ -28,7 +28,7 @@ constexpr float gFar				= 300.0f;
 static float gFocalPlaneDistance	= 60;
 static float gFocalTransitionRange	= 50;
 
-constexpr size_t gPointLights		= 6;
+constexpr size_t gPointLights		= 8;
 constexpr bool gPauseLights			= false;
 
 //--------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ struct cbPerPass
 struct UniformDataDOF
 {
 	float filterRadius	= 1.0f;
-	float blend			= 1.0f;
+	float blend			= 7.0f;
 	float nb			= gNear;
 	float ne			= 0.0f;
 	float fb			= 0.0f;
@@ -456,9 +456,9 @@ class CircularDOF: public IApp
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
-		pGui->AddWidget(SliderFloatWidget("Focal Plane Distance", &gFocalPlaneDistance, gNear, gFar, 10.0, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Focal Transition Range", &gFocalTransitionRange, 0, 1000, 10.0f, "%.1f"));
-		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 2, 0.11f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Plane Distance", &gFocalPlaneDistance, gNear, gFar, 1.0f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Focal Transition Range", &gFocalTransitionRange, 0, 1000, 1.0f, "%.1f"));
+		pGui->AddWidget(SliderFloatWidget("Blend", &gUniformDataDOF.blend, 0, 10, 0.11f, "%.1f"));
 		pGui->AddWidget(SliderFloatWidget("Max Radius", &gUniformDataDOF.filterRadius, 0, 10, 0.1f, "%.1f"));
 
 		CameraMotionParameters cmp { 100.0f, 100.0f, 500.0f };
@@ -630,12 +630,12 @@ class CircularDOF: public IApp
 
 		viewMat.setTranslation(vec3(0));
 
-		gUniformDataDOF.nb = gFocalPlaneDistance - gFocalTransitionRange;
-		if (gUniformDataDOF.nb < 0.0f)
-			gUniformDataDOF.nb = 0.0f;
-		gUniformDataDOF.ne = gFocalPlaneDistance;
-		gUniformDataDOF.fb = gFocalPlaneDistance;
-		gUniformDataDOF.fe= gFocalPlaneDistance + gFocalTransitionRange;
+		gUniformDataDOF.nb = gNear;
+		gUniformDataDOF.ne = gFocalPlaneDistance - gFocalTransitionRange;
+		if (gUniformDataDOF.ne < gNear)
+			gUniformDataDOF.ne = gNear;
+		gUniformDataDOF.fb = gFocalPlaneDistance + gFocalTransitionRange;
+		gUniformDataDOF.fe= gFar;
 
 		gUniformDataDOF.projParams = { projMat[2][2], projMat[3][2] };
 

@@ -207,8 +207,8 @@ float4 main(VSOutput input) : SV_TARGET
 		filteredColorNear = float4(float3(redChannel, greenChannel, blueChannel), w);
 	}
 	
-	color = lerp(color, filteredColorFar, saturate(cocValueFar * 4));
-	color = lerp(color, filteredColorNear, saturate(cocValueNear * 4));
+	color = lerp(color, filteredColorFar, saturate(cocValueFar * blend));
+	color = lerp(color, filteredColorNear, saturate(cocValueNear * blend));
 
 	return color;
 }
