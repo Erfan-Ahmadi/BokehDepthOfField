@@ -12,7 +12,7 @@ struct PSOut
     float FilteredNearCoC : SV_Target0;
 };
 
-#define RADIUS 6
+#define RADIUS 3
 
 PSOut main(VSOutput input) : SV_TARGET
 {

@@ -25,8 +25,8 @@ bool bPrevToggleMicroProfiler		= false;
 constexpr float gNear				= 0.1f;
 constexpr float gFar				= 300.0f;
 
-static float gFocalPlaneDistance	= 60;
-static float gFocalTransitionRange	= 50;
+static float gFocalPlaneDistance	= 47;
+static float gFocalTransitionRange	= 4;
 
 constexpr size_t gPointLights		= 8;
 constexpr bool gPauseLights			= false;
@@ -124,7 +124,7 @@ Cmd** ppCmdsComposite															= NULL;
 
 SwapChain* pSwapChain 															= NULL;
 
-Fence* pRenderCompleteFences[gImageCount] 									= { NULL };
+Fence* pRenderCompleteFences[gImageCount] 										= { NULL };
 
 Semaphore* pImageAcquiredSemaphore 												= NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] 								= { NULL };
@@ -2152,7 +2152,6 @@ class CircularDOF: public IApp
 			pipelineSettings.pShaderProgram = pShaderBoxFilterNearCoCY;
 			addPipeline(pRenderer, &desc, &pPipelineBoxFilterNearCoCY);
 		}
-
 
 		// Horizontal Filter
 		{
