@@ -36,5 +36,5 @@ float2 main(VSOutput input): SV_Target
 	float r = (ne - depth_linearized) / (ne - nb);
 	float g = (depth_linearized - fb) / (fe - fb);
 
-	return float2(depth, g);
+	return float2(r, g);
 }
