@@ -4,6 +4,8 @@ Implementing Different Algorithms to mimic Bokeh Depth Of Field: A Physical Came
 
 This Project is using [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge), a cross-platform rendering, and targeted for these devices: PC, Android, macOS, IOS, IPad OS devices.
 
+❗️❗️ This Project is Further Developed on [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge) as a UnitTest and **no longer maintained in this repository page**. ❗️❗️ 
+
 ## Motivation
 
 To mimic the physical camera in real-time in an efficient way to reduce postfx overheads.
@@ -121,10 +123,8 @@ All Bokeh Links and Book Chapters gathered for R&D are in [this github gist](htt
 
 - [x] PC
   - [x] Windows 10 - **DX12**
-  - [ ] Windows 10 - **Vulkan 1.1**
+  - [x] Windows 10 - **Vulkan 1.1**
   - [ ] Windows 7 - **Fallback DX11**
-  - [ ] Linux Ubuntu 18.04 LTS - **Vulkan 1.1**
+  - [x] Linux Ubuntu 18.04 LTS - **Vulkan 1.1**
 - [ ] Android Pie - **Vulkan 1.1**
-- [ ] macOS / iOS / iPad OS - **Metal 2.2**
-
-❗️❗️ This Project is Further Developed on [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge) as a UnitTest and **no longer maintained in this repository page**. ❗️❗️ 
+- [x] macOS / iOS / iPad OS - **Metal 2.2**
