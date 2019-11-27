@@ -1,0 +1,160 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{2e0f432a-e080-440e-b8d2-10d4c07fe5d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12">
+      <UniqueIdentifier>{6e1e5cce-4fc6-4310-8c42-a9bc7419044c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{2ddf16a2-15f2-4559-8e3b-0c63292f85d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12\circular_dof">
+      <UniqueIdentifier>{3c4e1c03-5840-40d5-b589-86ce060f8cff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12\meshes">
+      <UniqueIdentifier>{58e4cb75-8f93-4583-8d4f-5ec17a7755ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12\gather_based_dof">
+      <UniqueIdentifier>{526a4ca6-cbfd-4f7c-9658-614cea09ad4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12\singlepass">
+      <UniqueIdentifier>{746e484e-bcc5-4646-9efe-357d73c6cc2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan\circular_dof">
+      <UniqueIdentifier>{28507d2e-0e0f-4a86-866e-60289150bf0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan\meshes">
+      <UniqueIdentifier>{2af46401-ba35-4ea8-970c-cd4125d7c56a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan\singlepass">
+      <UniqueIdentifier>{56b7e4bb-e5eb-4d52-8992-a8a80f5cc38c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan\gather_based_dof">
+      <UniqueIdentifier>{f09d38bf-288f-48c1-88b3-deb840e866e6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\circular_dof\horizontalDof.frag">
+      <Filter>Shaders\D3D12\circular_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\circular_dof\composite.frag">
+      <Filter>Shaders\D3D12\circular_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\circular_dof\downsample.frag">
+      <Filter>Shaders\D3D12\circular_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\gather_based_dof\computation.frag">
+      <Filter>Shaders\D3D12\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\gather_based_dof\downsample_2.frag">
+      <Filter>Shaders\D3D12\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\gather_based_dof\fill.frag">
+      <Filter>Shaders\D3D12\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\gather_based_dof\composite_2.frag">
+      <Filter>Shaders\D3D12\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\meshes\light.vert">
+      <Filter>Shaders\D3D12\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\meshes\sponza.frag">
+      <Filter>Shaders\D3D12\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\meshes\sponza.vert">
+      <Filter>Shaders\D3D12\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\meshes\light.frag">
+      <Filter>Shaders\D3D12\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\singlepass\dof.frag">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\maxfilterNearCoC.frag">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\profile.frag">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\profile.vert">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\boxfilterNearCoC.frag">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\genCoc.frag">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\D3D12\image.vert">
+      <Filter>Shaders\D3D12\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\genCoc.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\image.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\maxfilterNearCoC.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\boxfilterNearCoC.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\singlepass\dof.frag">
+      <Filter>Shaders\Vulkan\singlepass</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\meshes\sponza.vert">
+      <Filter>Shaders\Vulkan\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\meshes\sponza_Android.frag">
+      <Filter>Shaders\Vulkan\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\meshes\light.frag">
+      <Filter>Shaders\Vulkan\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\meshes\light.vert">
+      <Filter>Shaders\Vulkan\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\meshes\sponza.frag">
+      <Filter>Shaders\Vulkan\meshes</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\gather_based_dof\fill.frag">
+      <Filter>Shaders\Vulkan\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\gather_based_dof\composite_2.frag">
+      <Filter>Shaders\Vulkan\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\gather_based_dof\computation.frag">
+      <Filter>Shaders\Vulkan\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\gather_based_dof\downsample_2.frag">
+      <Filter>Shaders\Vulkan\gather_based_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\circular_dof\composite.frag">
+      <Filter>Shaders\Vulkan\circular_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\circular_dof\downsample.frag">
+      <Filter>Shaders\Vulkan\circular_dof</Filter>
+    </None>
+    <None Include="..\..\..\src\29_DepthOfField\Shaders\Vulkan\circular_dof\horizontalDof.frag">
+      <Filter>Shaders\Vulkan\circular_dof</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\29_DepthOfField\DepthOfField.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
