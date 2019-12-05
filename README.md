@@ -119,12 +119,12 @@ All Bokeh Links and Book Chapters gathered for R&D are in [this github gist](htt
   - [GitHub](https://github.com/wolfgangfengel/GPUZen)
 - <a name="SinglePass"></a>[Bokeh depth of field in a single pass - Dennis Gustafsson](http://blog.tuxedolabs.com/2018/05/04/bokeh-depth-of-field-in-single-pass.html)
 
-## Built and Tested Devices
+## Built and Tested Devices (See UnitTest 29_DepthOfField in TheForge)
 
 - [x] PC
   - [x] Windows 10 - **DX12**
   - [x] Windows 10 - **Vulkan 1.1**
   - [ ] Windows 7 - **Fallback DX11**
   - [x] Linux Ubuntu 18.04 LTS - **Vulkan 1.1**
-- [ ] Android Pie - **Vulkan 1.1**
+- [x] Android Pie - **Vulkan 1.1**
 - [x] macOS / iOS / iPad OS - **Metal 2.2**
