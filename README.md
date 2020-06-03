@@ -4,7 +4,7 @@ Implementing Different Algorithms to mimic Bokeh Depth Of Field: A Physical Came
 
 This Project is using [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge), a cross-platform rendering, and targeted for these devices: PC, Android, macOS, IOS, IPad OS devices.
 
-❗️❗️ This Project is Further Developed on [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge) as a UnitTest and **no longer maintained in this repository page**. ❗️❗️ 
+❗️❗️ This Project is Further Developed on [The Forge Rendering API](https://github.com/ConfettiFX/The-Forge) as a UnitTest and **no longer maintained in this repository page**. But Shaders are always up to date :) ❗️❗️ 
 
 ## Motivation
 
